@@ -1,1 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DukaCredit - Public Inventory</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E49B0F 0%, #B8860B 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #E49B0F, #D2691E);
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 8px 25px rgba(228, 155, 15, 0.4);
+        }
+
+        .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #E49B0F;
+            margin-bottom: 10px;
+        }
+
+        .merchant-info {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .merchant-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .merchant-details {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(228, 155, 15, 0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+            flex: 1;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .detail-icon {
+            width: 20px;
+            height: 20px;
+            background: #E49B0F;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .inventory-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .inventory-header {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .item-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 4px solid #E49B0F;
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .item-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .item-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #059669;
+            margin-bottom: 5px;
+        }
+
+        .item-stock {
+            font-size: 14px;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid #ef4444;
+            color: #dc2626;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .merchant-details {
+                flex-direction: column;
+            }
+            
+            .detail-item {
+                min-width: 100%;
+            }
+            
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+
+</head>
+<body>
+    <div class="container">
+        <!-- Company Header -->
+        <div class="header">
+            <div class="logo">DC</div>
+            <div class="company-name">DukaCredit</div>
+            <p style="color: #6b7280; font-size: 16px;">Inventory Management Solution</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading merchant inventory...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error" style="display: none;">
+            <h3>⚠️ Invalid Merchant ID</h3>
+            <p>The merchant ID provided is not valid or the merchant doesn't exist.</p>
+        </div>
+
+        <!-- Merchant Info -->
+        <div id="merchant-info" class="merchant-info" style="display: none;">
+            <div class="merchant-name" id="merchant-name"></div>
+            <div class="merchant-details">
+                <div class="detail-item">
+                    <div class="detail-icon">📍</div>
+                    <span id="merchant-location"></span>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-icon">📞</div>
+                    <span id="merchant-phone"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Section -->
+        <div id="inventory-section" class="inventory-section" style="display: none;">
+            <div class="inventory-header">Available Items</div>
+            <div id="items-container" class="items-grid"></div>
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="empty-icon">📦</div>
+                <h3>No Items Available</h3>
+                <p>This merchant currently has no items in their inventory.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration - Replace with your actual values
+        const supabaseUrl = 'https://lmmtgonfgxfgkblcttcf.supabase.co'; // Replace with your Project URL
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbXRnb25mZ3hmZ2tibGN0dGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMzY3NDIsImV4cCI6MjA2MTYxMjc0Mn0.6u7-51RFkbCWnWYYdj8XfVJu4g9cag8jr-HhVJLmViQ'; // Replace with your anon public key
+        
+        // Debug: Log the credentials (remove this after testing)
+        console.log('🔍 Debug - Supabase URL:', supabaseUrl);
+        console.log('🔍 Debug - API Key length:', supabaseKey.length);
+        console.log('🔍 Debug - API Key starts with:', supabaseKey.substring(0, 10));
+        console.log('🔍 Debug - URL check:', supabaseUrl !== 'https://lmmtgonfgxfgkblcttcf.supabase.co');
+        console.log('🔍 Debug - Key check:', supabaseKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbXRnb25mZ3hmZ2tibGN0dGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMzY3NDIsImV4cCI6MjA2MTYxMjc0Mn0.6u7-51RFkbCWnWYYdj8XfVJu4g9cag8jr-HhVJLmViQ');
+        
+        // Initialize Supabase client
+        let supabase;
+        
+        // Initialize the app with comprehensive error handling
+        async function initApp() {
+            try {
+                console.log('🚀 DukaCredit Inventory Viewer - Starting initialization...');
+                
+                // Check if Supabase library loaded
+                if (typeof window.supabase === 'undefined') {
+                    console.error('❌ Supabase library failed to load from CDN');
+                    showError('Failed to load required libraries. Please check your internet connection and try again.');
+                    return;
+                }
+                
+                console.log('✅ Supabase library loaded successfully');
+                
+                // Initialize Supabase (only if credentials are provided)
+                if (supabaseUrl !== 'https://your-project-id.supabase.co' && supabaseKey !== 'your-anon-key-here') {
+                    try {
+                        console.log('✅ Supabase credentials detected, initializing client...');
+                        console.log('📍 Supabase URL:', supabaseUrl);
+                        console.log('🔑 API Key (first 20 chars):', supabaseKey.substring(0, 20) + '...');
+                        
+                        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                        console.log('✅ Supabase client initialized successfully');
+                    } catch (supabaseError) {
+                        console.error('❌ Failed to initialize Supabase client:', supabaseError);
+                        showError('Failed to connect to database. Please check your Supabase configuration.');
+                        return;
+                    }
+                } else {
+                    console.log('⚠️  No Supabase credentials provided, running in demo mode');
+                }
+                
+                // Get merchant ID from URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const merchantId = urlParams.get('merchant_id') || urlParams.get('id');
+                
+                console.log('🔍 Extracted merchant ID from URL:', merchantId);
+                
+                if (!merchantId) {
+                    console.error('❌ No merchant ID found in URL parameters');
+                    showError('No merchant ID provided in URL. Please add ?merchant_id=YOUR_ID to the URL');
+                    return;
+                }
+                
+                console.log('📋 Proceeding to load merchant data for ID:', merchantId);
+                await loadMerchantData(merchantId);
+                
+            } catch (error) {
+                console.error('💥 Critical error in initApp:', error);
+                showError(`Application initialization failed: ${error.message}`);
+            }
+        }
+
+        // Load merchant data and inventory with detailed error tracking
+        async function loadMerchantData(merchantId) {
+            let merchantData = null; // Declare at function scope
+            
+            try {
+                console.log('📊 Starting to load merchant data...');
+                
+                // Demo mode if Supabase is not configured
+                if (!supabase) {
+                    console.log('🎭 Running in demo mode (no Supabase connection)');
+                    loadDemoData(merchantId);
+                    return;
+                }
+                
+                console.log('🔍 Attempting to fetch merchant with ID:', merchantId);
+                
+                // Test Supabase connection first
+                try {
+                    console.log('🔌 Testing Supabase connection...');
+                    const { data: testData, error: testError } = await supabase
+                        .from('aman_merchants')
+                        .select('count', { count: 'exact', head: true });
+                        
+                    if (testError) {
+                        console.error('❌ Supabase connection test failed:', testError);
+                        throw new Error(`Database connection failed: ${testError.message}`);
+                    }
+                    
+                    console.log('✅ Supabase connection test successful');
+                } catch (connectionError) {
+                    console.error('💥 Connection test error:', connectionError);
+                    showError(`Database connection error: ${connectionError.message}`);
+                    return;
+                }
+                
+                // Fetch merchant details
+                try {
+                    console.log('👤 Fetching merchant details...');
+                    const { data: fetchedMerchantData, error: merchantError } = await supabase
+                        .from('aman_merchants')
+                        .select('*')
+                        .eq('id', merchantId)
+                        .single();
+
+                    console.log('📋 Merchant query completed');
+                    console.log('📊 Merchant data:', fetchedMerchantData);
+                    console.log('⚠️  Merchant error:', merchantError);
+
+                    if (merchantError) {
+                        console.error('❌ Merchant query error details:', {
+                            code: merchantError.code,
+                            message: merchantError.message,
+                            details: merchantError.details,
+                            hint: merchantError.hint
+                        });
+                        
+                        if (merchantError.code === 'PGRST116') {
+                            showError(`Merchant with ID "${merchantId}" not found in database`);
+                        } else {
+                            showError(`Database error: ${merchantError.message}`);
+                        }
+                        return;
+                    }
+                    
+                    if (!fetchedMerchantData) {
+                        console.error('❌ No merchant data returned (null result)');
+                        showError(`Merchant with ID "${merchantId}" not found`);
+                        return;
+                    }
+
+                    // Store merchant data in function scope
+                    merchantData = fetchedMerchantData;
+                    console.log('✅ Merchant data loaded successfully:', merchantData.name);
+
+                } catch (merchantFetchError) {
+                    console.error('💥 Error during merchant fetch:', merchantFetchError);
+                    showError(`Failed to fetch merchant: ${merchantFetchError.message}`);
+                    return;
+                }
+
+                // Fetch inventory items
+                try {
+                    console.log('📦 Fetching inventory items...');
+                    const { data: inventoryData, error: inventoryError } = await supabase
+                        .from('aman_inventory')
+                        .select('*')
+                        .eq('merchant_id', merchantId);
+
+                    console.log('📋 Inventory query completed');
+                    console.log('📊 Inventory data:', inventoryData);
+                    console.log('⚠️  Inventory error:', inventoryError);
+
+                    if (inventoryError) {
+                        console.error('❌ Inventory query error:', inventoryError);
+                        showError(`Failed to load inventory: ${inventoryError.message}`);
+                        return;
+                    }
+
+                    const itemCount = inventoryData ? inventoryData.length : 0;
+                    console.log(`✅ Inventory loaded: ${itemCount} items found`);
+
+                    // Display the data
+                    displayMerchantData(merchantData, inventoryData || []);
+
+                } catch (inventoryFetchError) {
+                    console.error('💥 Error during inventory fetch:', inventoryFetchError);
+                    // Still show merchant data even if inventory fails
+                    console.log('📊 Showing merchant data without inventory due to error');
+                    if (merchantData) {
+                        displayMerchantData(merchantData, []);
+                    }
+                }
+
+            } catch (error) {
+                console.error('💥 Unexpected error in loadMerchantData:', error);
+                console.error('🔍 Error stack:', error.stack);
+                showError(`Unexpected error: ${error.message}`);
+            }
+        }
+
+        // Demo data for testing without Supabase
+        function loadDemoData(merchantId) {
+            try {
+                console.log('🎭 Loading demo data for merchant ID:', merchantId);
+                
+                // Simulate different merchants based on ID
+                const demoMerchants = {
+                    'demo1': {
+                        name: 'Fresh Fruits & Vegetables',
+                        location: 'Nairobi Central Market',
+                        phone: '+254 700 123 456'
+                    },
+                    'demo2': {
+                        name: 'Tech Electronics Store',
+                        location: 'Westlands Shopping Center',
+                        phone: '+254 722 987 654'
+                    }
+                };
+
+                const demoInventory = {
+                    'demo1': [
+                        { name: 'Fresh Bananas', price: 150, stock: 25 },
+                        { name: 'Tomatoes (1kg)', price: 80, stock: 40 },
+                        { name: 'Onions (1kg)', price: 120, stock: 30 },
+                        { name: 'Potatoes (2kg)', price: 200, stock: 20 }
+                    ],
+                    'demo2': [
+                        { name: 'Samsung Galaxy A54', price: 35000, stock: 5 },
+                        { name: 'iPhone 13', price: 85000, stock: 3 },
+                        { name: 'MacBook Air M2', price: 150000, stock: 2 },
+                        { name: 'AirPods Pro', price: 25000, stock: 8 }
+                    ]
+                };
+
+                const merchant = demoMerchants[merchantId];
+                const inventory = demoInventory[merchantId] || [];
+
+                if (!merchant) {
+                    console.error('❌ Demo merchant not found for ID:', merchantId);
+                    showError(`Demo merchant "${merchantId}" not found. Try "demo1" or "demo2"`);
+                    return;
+                }
+
+                console.log('✅ Demo merchant found:', merchant.name);
+                console.log('📦 Demo inventory items:', inventory.length);
+
+                setTimeout(() => {
+                    console.log('🎭 Displaying demo data...');
+                    displayMerchantData(merchant, inventory);
+                }, 1500); // Simulate loading time
+
+            } catch (error) {
+                console.error('💥 Error in demo data loading:', error);
+                showError(`Demo error: ${error.message}`);
+            }
+        }
+
+        // Display merchant data and inventory with error handling
+        function displayMerchantData(merchant, inventory) {
+            try {
+                console.log('🖼️  Displaying merchant data and inventory...');
+                hideLoading();
+
+                // Validate merchant data
+                if (!merchant || !merchant.name) {
+                    console.error('❌ Invalid merchant data structure:', merchant);
+                    showError('Invalid merchant data received');
+                    return;
+                }
+
+                // Display merchant info
+                console.log('👤 Setting merchant information...');
+                document.getElementById('merchant-name').textContent = merchant.name;
+                document.getElementById('merchant-location').textContent = merchant.location || 'Location not provided';
+                document.getElementById('merchant-phone').textContent = merchant.phone || 'Phone not provided';
+                document.getElementById('merchant-info').style.display = 'block';
+
+                // Display inventory
+                console.log('📦 Setting up inventory section...');
+                document.getElementById('inventory-section').style.display = 'block';
+                
+                if (!inventory || inventory.length === 0) {
+                    console.log('📦 No inventory items to display');
+                    document.getElementById('empty-state').style.display = 'block';
+                    document.getElementById('items-container').style.display = 'none';
+                } else {
+                    console.log(`📦 Displaying ${inventory.length} inventory items`);
+                    document.getElementById('empty-state').style.display = 'none';
+                    document.getElementById('items-container').style.display = 'grid';
+                    displayInventory(inventory);
+                }
+
+                console.log('✅ Successfully displayed all merchant data');
+
+            } catch (error) {
+                console.error('💥 Error displaying merchant data:', error);
+                showError(`Display error: ${error.message}`);
+            }
+        }
+
+        // Display inventory items with error handling
+        function displayInventory(items) {
+            try {
+                console.log('🏪 Rendering inventory items...');
+                const container = document.getElementById('items-container');
+                
+                if (!container) {
+                    throw new Error('Items container not found in DOM');
+                }
+                
+                container.innerHTML = '';
+
+                items.forEach((item, index) => {
+                    try {
+                        console.log(`📦 Rendering item ${index + 1}:`, item.name);
+                        
+                        // Validate item data
+                        if (!item.name || item.price === undefined) {
+                            console.warn(`⚠️  Invalid item data at index ${index}:`, item);
+                            return; // Skip this item
+                        }
+
+                        const itemCard = document.createElement('div');
+                        itemCard.className = 'item-card';
+                        
+                        // Ensure price is a number and format it
+                        const price = typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0;
+                        const stock = typeof item.stock === 'number' ? item.stock : parseInt(item.stock) || 0;
+                        
+                        itemCard.innerHTML = `
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-price">KSh ${price.toLocaleString()}</div>
+                            <div class="item-stock">Stock: ${stock} units</div>
+                        `;
+                        
+                        container.appendChild(itemCard);
+                        
+                    } catch (itemError) {
+                        console.error(`💥 Error rendering item ${index}:`, itemError);
+                        // Continue with other items
+                    }
+                });
+
+                console.log(`✅ Successfully rendered ${container.children.length} items`);
+
+            } catch (error) {
+                console.error('💥 Error in displayInventory:', error);
+                showError(`Failed to display inventory: ${error.message}`);
+            }
+        }
+
+        // Show error message with detailed logging
+        function showError(message) {
+            try {
+                console.error('❌ Showing error to user:', message);
+                hideLoading();
+                
+                const errorDiv = document.getElementById('error');
+                if (!errorDiv) {
+                    console.error('💥 Error div not found in DOM!');
+                    return;
+                }
+                
+                const errorText = errorDiv.querySelector('p');
+                if (errorText) {
+                    errorText.textContent = message;
+                } else {
+                    console.error('💥 Error text element not found!');
+                }
+                
+                errorDiv.style.display = 'block';
+                console.log('✅ Error message displayed to user');
+                
+            } catch (error) {
+                console.error('💥 Critical error in showError function:', error);
+                // Fallback: try to show alert if DOM manipulation fails
+                alert(`Error: ${message}`);
+            }
+        }
+
+        // Hide loading spinner
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+
+<footer style="
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px 15px 0 0;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+    margin-top: 40px;
+">
+    <p style="font-size: 18px; color: #1f2937; margin-bottom: 15px;">
+        📲 Download DukaCredit and manage your business with ease
+    </p>
+    <a href="https://play.google.com/store/apps/details?id=com.dukafi.dukacredit" target="_blank" 
+       style="
+           display: inline-block;
+           background: linear-gradient(135deg, #E49B0F, #D2691E);
+           color: white;
+           padding: 12px 25px;
+           border-radius: 30px;
+           font-weight: bold;
+           text-decoration: none;
+           box-shadow: 0 5px 15px rgba(228, 155, 15, 0.3);
+           transition: transform 0.2s ease, box-shadow 0.2s ease;
+       "
+       onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(228,155,15,0.5)';"
+       onmouseout="this.style.transform='none'; this.style.boxShadow='0 5px 15px rgba(228, 155, 15, 0.3)';">
+        🚀 Download DukaCredit
+    </a>
+</footer>
+</html>
