@@ -908,7 +908,7 @@
             try {
                 // Get merchant ID from URL
                 const urlParams = new URLSearchParams(window.location.search);
-                const merchantId = urlParams.get('merchant_id') || urlParams.get('id');
+                const merchantId = urlParams.get('m_id') || urlParams.get('id');
                 const useDemo = urlParams.get('demo') === 'true';
 
                 if (useDemo || !merchantId) {
