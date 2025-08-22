@@ -786,7 +786,7 @@
                     </div>
                     <div class="form-group">
                         <label>Phone Number *</label>
-                        <input type="tel" id="customerPhone" placeholder="+254..." required>
+                        <input type="tel" id="customerPhone" placeholder="+251..." required>
                     </div>
                     <div class="form-group">
                         <label>Email (Optional)</label>
@@ -823,6 +823,13 @@
         const SUPABASE_URL = 'https://lmmtgonfgxfgkblcttcf.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtbXRnb25mZ3hmZ2tibGN0dGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMzY3NDIsImV4cCI6MjA2MTYxMjc0Mn0.6u7-51RFkbCWnWYYdj8XfVJu4g9cag8jr-HhVJLmViQ';
 
+        // Afro Message SMS API configuration
+        const AFRO_MESSAGE_API = {
+            url: "https://api.afromessage.com/api/send",
+            token: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoibUdRTGpNTVNEdXdPMUJnMWNXcmt4Q3ExTnZLelkzWFoiLCJleHAiOjE5MDg4ODM0NDgsImlhdCI6MTc1MTExNzA0OCwianRpIjoiMzliNTkzMzUtNzA3MC00NmM2LTkzNWMtMDA4MGM2OGNmMTU4In0.2iSvBG6RVxu29wXomudQcZN4qFfeJEWFfiAX2yUHwYU",
+            sender: "Duka"
+        };
+
         let supabase;
         let products = [];
         let filteredProducts = [];
@@ -830,6 +837,71 @@
         let currentMerchantId = null;
         let currentMerchant = null;
         const VAT_RATE = 0.15; // 15% VAT
+
+        // SMS Sending Function using Afro Message API
+        async function sendSMS(phoneNumber, message) {
+            try {
+                console.log('Sending SMS to:', phoneNumber);
+                console.log('Message:', message);
+
+                // Clean phone number (remove + if present for Afro Message API)
+                const cleanPhone = phoneNumber.replace(/^\+/, '');
+
+                const params = new URLSearchParams({
+                    "sender": AFRO_MESSAGE_API.sender,
+                    "to": cleanPhone,
+                    "message": message
+                });
+
+                const response = await fetch(`${AFRO_MESSAGE_API.url}?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        "Authorization": `Bearer ${AFRO_MESSAGE_API.token}`
+                    }
+                });
+
+                // Log full response details for debugging
+                console.log('SMS API Response Status:', response.status);
+                console.log('SMS API Response OK:', response.ok);
+                
+                // Try to parse response
+                let data;
+                try {
+                    data = await response.json();
+                    console.log('SMS API Response Data:', data);
+                } catch (parseError) {
+                    console.log('Failed to parse JSON, trying text...');
+                    const textData = await response.text();
+                    console.log('SMS API Response Text:', textData);
+                    data = { rawResponse: textData };
+                }
+                
+                // More flexible success detection
+                // Check for various success indicators
+                const isSuccess = response.ok || 
+                                 response.status === 200 || 
+                                 response.status === 201 ||
+                                 (data && (
+                                     data.success === true ||
+                                     data.status === 'success' ||
+                                     data.message === 'success' ||
+                                     (typeof data.message === 'string' && data.message.toLowerCase().includes('success')) ||
+                                     data.sent === true ||
+                                     data.delivered === true
+                                 ));
+                
+                if (isSuccess) {
+                    console.log('SMS sent successfully:', data);
+                    return { success: true, data };
+                } else {
+                    console.error('SMS API error:', data);
+                    return { success: false, error: data };
+                }
+            } catch (error) {
+                console.error('SMS sending error:', error);
+                return { success: false, error: error.message };
+            }
+        }
 
         // Initialize
         async function init() {
@@ -870,7 +942,7 @@
             try {
                 console.log('Loading merchant:', merchantId);
 
-                // Fetch merchant from aman_merchant table
+                // Fetch merchant from aman_merchants table
                 const { data: merchant, error: merchantError } = await supabase
                     .from('aman_merchants')
                     .select('*')
@@ -936,7 +1008,7 @@
                 id: 'demo',
                 business_name: 'Safari Electronics Store',
                 location: 'Westlands, Nairobi',
-                phone: '+254 722 123456'
+                phone: '+254722123456'
             };
 
             // Update store info
@@ -1165,7 +1237,7 @@
             document.getElementById('checkoutModal').classList.remove('open');
         }
 
-        // Submit order
+        // Submit order - WITH SMS INTEGRATION INCLUDING ITEMS
         async function submitOrder(event) {
             event.preventDefault();
 
@@ -1173,14 +1245,16 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
 
+            const customerName = document.getElementById('customerName').value;
+            const customerPhone = document.getElementById('customerPhone').value;
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const vat = subtotal * VAT_RATE;
             const totalWithVAT = subtotal + vat;
 
             const orderData = {
                 merchant_id: currentMerchantId,
-                customer_name: document.getElementById('customerName').value,
-                customer_phone: document.getElementById('customerPhone').value,
+                customer_name: customerName,
+                customer_phone: customerPhone,
                 customer_email: document.getElementById('customerEmail').value || null,
                 delivery_address: document.getElementById('deliveryAddress').value || null,
                 items: cart.map(item => ({
@@ -1201,7 +1275,6 @@
             try {
                 // If using Supabase and not demo mode, try to save order
                 if (supabase && currentMerchantId !== 'demo') {
-                    // First check if orders table exists
                     const { data, error } = await supabase
                         .from('orders')
                         .insert([orderData]);
@@ -1217,8 +1290,33 @@
                     console.log('Demo order submitted:', orderData);
                 }
 
-                // Show success message
-                showToast('Order submitted successfully! We will contact you soon.', 'success');
+                // Send SMS notification to merchant with items list
+                if (currentMerchant && currentMerchant.phone) {
+                    const merchantName = currentMerchant.business_name || currentMerchant.name || 'Merchant';
+                    const orderAmount = Math.round(totalWithVAT).toLocaleString();
+                    const currency = cart[0]?.currency || 'ETB';
+                    
+                    // Create items list for SMS
+                    const itemsList = cart.map(item => `${item.name} (x${item.quantity})`).join(', ');
+                    
+                    // Enhanced SMS message with order items
+                    const smsMessage = `Dear ${merchantName}, You have received an order worth ${currency} ${orderAmount} from ${customerName}. Items: ${itemsList}. Please call the customer on ${customerPhone}`;
+                    
+                    // Send SMS using Afro Message API
+                    const smsResult = await sendSMS(currentMerchant.phone, smsMessage);
+                    
+                    if (smsResult.success) {
+                        console.log('SMS sent successfully to merchant');
+                        showToast('Order submitted and merchant notified!', 'success');
+                    } else {
+                        console.error('SMS failed:', smsResult.error);
+                        // Still show success for order submission
+                        showToast('Order submitted successfully! (SMS notification f)', 'success');
+                    }
+                } else {
+                    console.log('No merchant phone number for SMS');
+                    showToast('Order submitted successfully!', 'success');
+                }
 
                 // Clear cart
                 cart = [];
