@@ -841,21 +841,9 @@
                 AppState.currentMerchantId = 'demo';
                 AppState.currentMerchant = {
                     id: 'demo',
-                    business_name: 'Safari Electronics Store',
-                    location: 'Westlands, Nairobi',
-                    phone: '+254722123456'
+                    business_name: 'Please Check Your Internet Connection',
                 };
 
-                AppState.products = [
-                    { id: 1, name: 'Samsung Galaxy A54 5G', selling_price: 45000, stock_quantity: 15, category: 'Smartphones' },
-                    { id: 2, name: 'iPhone 13 Pro Max', selling_price: 125000, stock_quantity: 8, category: 'Smartphones' },
-                    { id: 3, name: 'Sony WH-1000XM4', selling_price: 28500, stock_quantity: 3, category: 'Audio' },
-                    { id: 4, name: 'MacBook Air M2', selling_price: 185000, stock_quantity: 5, category: 'Laptops' },
-                    { id: 5, name: 'iPad Air 5th Gen', selling_price: 75000, stock_quantity: 0, category: 'Tablets' },
-                    { id: 6, name: 'JBL Flip 6 Speaker', selling_price: 12500, stock_quantity: 20, category: 'Audio' },
-                    { id: 7, name: 'Samsung 55" 4K TV', selling_price: 65000, stock_quantity: 4, category: 'TVs' },
-                    { id: 8, name: 'PlayStation 5', selling_price: 75000, stock_quantity: 2, category: 'Gaming' }
-                ];
 
                 AppState.filteredProducts = [...AppState.products];
                 UIController.updateStoreHeader(AppState.currentMerchant);
