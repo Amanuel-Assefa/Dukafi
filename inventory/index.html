@@ -186,7 +186,9 @@
                 token: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoibUdRTGpNTVNEdXdPMUJnMWNXcmt4Q3ExTnZLelkzWFoiLCJleHAiOjE5MDg4ODM0NDgsImlhdCI6MTc1MTExNzA0OCwianRpIjoiMzliNTkzMzUtNzA3MC00NmM2LTkzNWMtMDA4MGM2OGNmMTU4In0.2iSvBG6RVxu29wXomudQcZN4qFfeJEWFfiAX2yUHwYU",
                 sender: "Duka"
             },
-            VAT_RATE: 0.15
+            VAT_RATE: 0.15,
+            // Default carton box image (base64 SVG)
+            DEFAULT_PRODUCT_IMAGE: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgPHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDAgMTAwKSI+CiAgICA8IS0tIEJveCBiYXNlIC0tPgogICAgPHJlY3QgeD0iLTQwIiB5PSItMjAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI2MCIgZmlsbD0iI2Q0YTM3NCIgc3Ryb2tlPSIjOTY3MDRhIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDwhLS0gQm94IHRvcCAtLT4KICAgIDxwb2x5Z29uIHBvaW50cz0iLTQwLC0yMCA0MCwtMjAgMzAsLTM1IC0zMCwtMzUiIGZpbGw9IiNlNmI4OGEiIHN0cm9rZT0iIzk2NzA0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8IS0tIEJveCBzaWRlIC0tPgogICAgPHBvbHlnb24gcG9pbnRzPSI0MCwtMjAgNDAsNDAgMzAsMjUgMzAsLTM1IiBmaWxsPSIjYzU5NTZkIiBzdHJva2U9IiM5NjcwNGEiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPCEtLSBUYXBlIC0tPgogICAgPHJlY3QgeD0iLTUiIHk9Ii0zNSIgd2lkdGg9IjEwIiBoZWlnaHQ9Ijc1IiBmaWxsPSIjZmZjYzgwIiBzdHJva2U9IiNmZmE1MDAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHJlY3QgeD0iLTI1IiB5PSItNSIgd2lkdGg9IjY1IiBoZWlnaHQ9IjEwIiBmaWxsPSIjZmZjYzgwIiBzdHJva2U9IiNmZmE1MDAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDwvZz4KPC9zdmc+'
         };
 
         // Global State
@@ -316,6 +318,7 @@
                         .from('inventory')
                         .select('*')
                         .eq('user_id', merchantId)
+                        .eq('is_deleted', false)  // Filter out deleted items
                         .order('created_at', { ascending: false });
 
                     if (error) {
@@ -471,7 +474,10 @@
                         <div class="product-card">
                             <div class="product-image">
                                 ${badge}
-                                📦
+                                <img src="${product.url || CONFIG.DEFAULT_PRODUCT_IMAGE}" 
+                                     alt="${Utils.escapeHtml(name)}" 
+                                     onerror="this.onerror=null; this.src='${CONFIG.DEFAULT_PRODUCT_IMAGE}';"
+                                     style="width: 100%; height: 100%; object-fit: cover;">
                             </div>
                             <div class="product-info">
                                 <h3 class="product-name">${Utils.escapeHtml(name)}</h3>
@@ -841,9 +847,21 @@
                 AppState.currentMerchantId = 'demo';
                 AppState.currentMerchant = {
                     id: 'demo',
-                    business_name: 'Please Check Your Internet Connection',
+                    business_name: 'Safari Electronics Store',
+                    location: 'Westlands, Nairobi',
+                    phone: '+254722123456'
                 };
 
+                AppState.products = [
+                    { id: 1, name: 'Samsung Galaxy A54 5G', selling_price: 45000, stock_quantity: 15, category: 'Smartphones' },
+                    { id: 2, name: 'iPhone 13 Pro Max', selling_price: 125000, stock_quantity: 8, category: 'Smartphones' },
+                    { id: 3, name: 'Sony WH-1000XM4', selling_price: 28500, stock_quantity: 3, category: 'Audio' },
+                    { id: 4, name: 'MacBook Air M2', selling_price: 185000, stock_quantity: 5, category: 'Laptops' },
+                    { id: 5, name: 'iPad Air 5th Gen', selling_price: 75000, stock_quantity: 0, category: 'Tablets' },
+                    { id: 6, name: 'JBL Flip 6 Speaker', selling_price: 12500, stock_quantity: 20, category: 'Audio' },
+                    { id: 7, name: 'Samsung 55" 4K TV', selling_price: 65000, stock_quantity: 4, category: 'TVs' },
+                    { id: 8, name: 'PlayStation 5', selling_price: 75000, stock_quantity: 2, category: 'Gaming' }
+                ];
 
                 AppState.filteredProducts = [...AppState.products];
                 UIController.updateStoreHeader(AppState.currentMerchant);
