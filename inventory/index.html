@@ -3,38 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Browse and shop from your favorite DukaCredit merchant. Easy online ordering with delivery.">
+    <link rel="icon" href="../assets/images/logo.png" type="image/png">
     <title>DukaCredit Store</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <div class="logo">DC</div>
+                <img src="../assets/images/logo.png" alt="DukaCredit logo" class="logo">
                 <span class="brand-name">DukaCredit</span>
             </div>
-            <button class="cart-btn" onclick="toggleCart()">
+            <button class="cart-btn" onclick="toggleCart()" aria-label="Open shopping cart">
                 🛒 Cart <span class="cart-count" id="cartCount">0</span>
             </button>
         </div>
     </nav>
 
     <!-- Loading State -->
-    <div id="loadingState" class="loading">
-        <div class="spinner"></div>
+    <div id="loadingState" class="loading" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
         <p>Loading store...</p>
     </div>
 
     <!-- Error State -->
-    <div id="errorState" class="error-container" style="display: none;">
+    <div id="errorState" class="error-container" style="display: none;" role="alert">
         <h2>⚠️ Store Not Found</h2>
         <p id="errorMessage">The store you're looking for doesn't exist or the link is invalid.</p>
-        <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
-            Try Again
-        </button>
+        <button onclick="location.reload()">Try Again</button>
     </div>
 
     <!-- Main Content -->
@@ -50,9 +50,10 @@
             </div>
         </div>
 
-        <!-- Search Bar -->
+        <!-- Search & Category Filters -->
         <div class="search-container">
-            <input type="text" class="search-input" id="searchInput" placeholder="Search products...">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search products..." aria-label="Search products">
+            <div class="category-filters" id="categoryFilters" role="tablist" aria-label="Filter by category"></div>
         </div>
 
         <!-- Main Container -->
@@ -69,14 +70,12 @@
             <div class="footer-content">
                 <div class="footer-brand">
                     <div class="footer-logo">
-                        <div class="logo">DC</div>
+                        <img src="../assets/images/logo.png" alt="DukaCredit logo" class="logo">
                         <span class="brand-name">DukaCredit</span>
                     </div>
-                    <p style="color: var(--gray-400); font-size: 14px;">
-                        Empowering small businesses with smart inventory and credit solutions.
-                    </p>
+                    <p>Empowering small businesses with smart inventory and credit solutions.</p>
                 </div>
-                
+
                 <div class="footer-section">
                     <h4>Download Now</h4>
                     <div class="footer-links">
@@ -86,7 +85,7 @@
                         </a>
                     </div>
                 </div>
-                
+
                 <div class="footer-section">
                     <h4>Connect</h4>
                     <div class="footer-links">
@@ -96,7 +95,7 @@
                         </a>
                     </div>
                 </div>
-                
+
                 <div class="footer-section">
                     <h4>Company</h4>
                     <div class="footer-links">
@@ -105,18 +104,21 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="footer-bottom">
                 © 2025 DukaCredit. All rights reserved.
             </div>
         </footer>
     </div>
 
+    <!-- Cart Overlay -->
+    <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
     <!-- Cart Sidebar -->
-    <div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-sidebar" id="cartSidebar" role="complementary" aria-label="Shopping cart">
         <div class="cart-header">
             <h2>Shopping Cart</h2>
-            <button class="close-btn" onclick="toggleCart()">✕</button>
+            <button class="close-btn" onclick="toggleCart()" aria-label="Close cart">✕</button>
         </div>
         <div class="cart-items" id="cartItems"></div>
         <div class="cart-footer">
@@ -130,51 +132,74 @@
     </div>
 
     <!-- Checkout Modal -->
-    <div class="modal" id="checkoutModal">
+    <div class="modal" id="checkoutModal" role="dialog" aria-modal="true" aria-label="Checkout">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2>Checkout</h2>
-                <button class="close-btn" onclick="closeCheckout()">✕</button>
+            <!-- Checkout Form View -->
+            <div id="checkoutFormView">
+                <div class="modal-header">
+                    <h2>Checkout</h2>
+                    <button class="close-btn" onclick="closeCheckout()" aria-label="Close checkout">✕</button>
+                </div>
+                <div class="modal-body">
+                    <form id="checkoutForm">
+                        <div class="form-group">
+                            <label for="customerName">Full Name *</label>
+                            <input type="text" id="customerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerPhone">Phone Number *</label>
+                            <input type="tel" id="customerPhone" placeholder="+251..." required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerEmail">Email (Optional)</label>
+                            <input type="email" id="customerEmail">
+                        </div>
+                        <div class="form-group">
+                            <label for="deliveryAddress">Delivery Address</label>
+                            <textarea id="deliveryAddress" rows="3" placeholder="Enter your delivery address..."></textarea>
+                        </div>
+                        <div class="order-summary">
+                            <h3>Order Summary</h3>
+                            <div id="orderSummary"></div>
+                            <div class="order-summary-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06);">
+                                <span>Subtotal:</span>
+                                <span id="orderSubtotal">ETB 0</span>
+                            </div>
+                            <div class="order-summary-row">
+                                <span>VAT (15%):</span>
+                                <span id="orderVAT">ETB 0</span>
+                            </div>
+                            <div class="order-summary-total">
+                                <span>Total Amount:</span>
+                                <span id="orderTotal">ETB 0</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn" id="submitBtn">Submit Order</button>
+                    </form>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="checkoutForm">
-                    <div class="form-group">
-                        <label for="customerName">Full Name *</label>
-                        <input type="text" id="customerName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerPhone">Phone Number *</label>
-                        <input type="tel" id="customerPhone" placeholder="+251..." required>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerEmail">Email (Optional)</label>
-                        <input type="email" id="customerEmail">
-                    </div>
-                    <div class="form-group">
-                        <label for="deliveryAddress">Delivery Address</label>
-                        <textarea id="deliveryAddress" rows="3" placeholder="Enter your delivery address..."></textarea>
-                    </div>
-                    <div class="order-summary">
-                        <h3>Order Summary</h3>
-                        <div id="orderSummary"></div>
-                        <div class="order-summary-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--gray-300);">
-                            <span>Subtotal:</span>
-                            <span id="orderSubtotal">ETB 0</span>
-                        </div>
-                        <div class="order-summary-row">
-                            <span>VAT (15%):</span>
-                            <span id="orderVAT">ETB 0</span>
-                        </div>
-                        <div class="order-summary-total">
-                            <span>Total Amount:</span>
-                            <span id="orderTotal">ETB 0</span>
-                        </div>
-                    </div>
-                    <button type="submit" class="submit-btn" id="submitBtn">Submit Order</button>
-                </form>
+
+            <!-- Order Confirmation View (hidden by default) -->
+            <div id="orderConfirmationView" style="display: none;">
+                <div class="modal-header">
+                    <h2>Order Placed</h2>
+                    <button class="close-btn" onclick="closeCheckout()" aria-label="Close confirmation">✕</button>
+                </div>
+                <div class="order-confirmation">
+                    <div class="confirmation-icon">✓</div>
+                    <h2>Order Submitted!</h2>
+                    <p>Your order has been sent to the merchant.</p>
+                    <p>They will contact you to arrange delivery.</p>
+                    <div class="order-number" id="confirmationOrderNumber">ORD-000000</div>
+                    <p>Save this order number for your reference.</p>
+                    <button class="continue-btn" onclick="closeCheckout()">Continue Shopping</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
     <script>
         // Configuration
@@ -187,7 +212,6 @@
                 sender: "Duka"
             },
             VAT_RATE: 0.15,
-            // Default carton box image (base64 SVG)
             DEFAULT_PRODUCT_IMAGE: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgPHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDAgMTAwKSI+CiAgICA8IS0tIEJveCBiYXNlIC0tPgogICAgPHJlY3QgeD0iLTQwIiB5PSItMjAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI2MCIgZmlsbD0iI2Q0YTM3NCIgc3Ryb2tlPSIjOTY3MDRhIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDwhLS0gQm94IHRvcCAtLT4KICAgIDxwb2x5Z29uIHBvaW50cz0iLTQwLC0yMCA0MCwtMjAgMzAsLTM1IC0zMCwtMzUiIGZpbGw9IiNlNmI4OGEiIHN0cm9rZT0iIzk2NzA0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8IS0tIEJveCBzaWRlIC0tPgogICAgPHBvbHlnb24gcG9pbnRzPSI0MCwtMjAgNDAsNDAgMzAsMjUgMzAsLTM1IiBmaWxsPSIjYzU5NTZkIiBzdHJva2U9IiM5NjcwNGEiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPCEtLSBUYXBlIC0tPgogICAgPHJlY3QgeD0iLTUiIHk9Ii0zNSIgd2lkdGg9IjEwIiBoZWlnaHQ9Ijc1IiBmaWxsPSIjZmZjYzgwIiBzdHJva2U9IiNmZmE1MDAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHJlY3QgeD0iLTI1IiB5PSItNSIgd2lkdGg9IjY1IiBoZWlnaHQ9IjEwIiBmaWxsPSIjZmZjYzgwIiBzdHJva2U9IiNmZmE1MDAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDwvZz4KPC9zdmc+'
         };
 
@@ -200,9 +224,11 @@
             filteredProducts: [],
             cart: [],
             isLoading: false,
-            isDemoMode: false
+            isDemoMode: false,
+            activeCategory: 'all'
         };
-       // Utility Functions
+
+        // Utility Functions
         const Utils = {
             escapeHtml(text) {
                 const map = {
@@ -232,15 +258,17 @@
             },
 
             showToast(message, type = 'success', duration = 3000) {
+                const container = document.getElementById('toastContainer');
                 const toast = document.createElement('div');
                 toast.className = `toast ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
                 toast.textContent = message;
-                document.body.appendChild(toast);
-                
+                container.appendChild(toast);
+
                 setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
+                    toast.classList.add('removing');
+                    toast.addEventListener('animationend', () => {
+                        if (toast.parentNode) toast.parentNode.removeChild(toast);
+                    });
                 }, duration);
             },
 
@@ -261,7 +289,7 @@
                     if (typeof window.supabase === 'undefined') {
                         throw new Error('Supabase library not loaded');
                     }
-                    
+
                     AppState.supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
                     Utils.log('Supabase initialized');
                     return true;
@@ -274,17 +302,17 @@
             async testConnection() {
                 try {
                     if (!AppState.supabase) return false;
-                    
+
                     const { data, error } = await AppState.supabase
                         .from('profiles')
                         .select('id')
                         .limit(1);
-                    
+
                     if (error) {
                         Utils.error('Connection test failed', error);
                         return false;
                     }
-                    
+
                     Utils.log('Supabase connection test successful');
                     return true;
                 } catch (error) {
@@ -318,7 +346,7 @@
                         .from('inventory')
                         .select('*')
                         .eq('user_id', merchantId)
-                        .eq('is_deleted', false)  // Filter out deleted items
+                        .eq('is_deleted', false)
                         .order('created_at', { ascending: false });
 
                     if (error) {
@@ -394,7 +422,7 @@
                     }
 
                     const success = response.ok || response.status === 200;
-                    
+
                     if (success) {
                         Utils.log('SMS sent successfully');
                         return { success: true, data: responseData };
@@ -431,11 +459,11 @@
             },
 
             updateStoreHeader(merchant) {
-                document.getElementById('storeName').textContent = 
+                document.getElementById('storeName').textContent =
                     merchant.business_name || merchant.display_name || 'Store';
-                document.getElementById('storeLocation').textContent = 
+                document.getElementById('storeLocation').textContent =
                     `📍 ${merchant.location || merchant.address || 'Location'}`;
-                document.getElementById('storePhone').textContent = 
+                document.getElementById('storePhone').textContent =
                     `📞 ${merchant.phone || merchant.contact || 'Contact'}`;
             },
 
@@ -457,10 +485,11 @@
                     const price = product.sales_price || product.selling_price || product.price || 0;
                     const stock = product.stock_quantity || 10;
                     const currency = product.currency || 'ETB';
-                    
+
                     const cartItem = AppState.cart.find(item => item.id === product.id);
                     const cartQty = cartItem ? cartItem.quantity : 0;
-                    
+                    const inCartClass = cartQty > 0 ? ' in-cart' : '';
+
                     let badge = '';
                     if (stock === 0) {
                         badge = '<span class="product-badge badge-error">Out of Stock</span>';
@@ -469,29 +498,54 @@
                     } else if (stock > 10) {
                         badge = '<span class="product-badge badge-success">In Stock</span>';
                     }
-                    
+
                     return `
                         <div class="product-card">
                             <div class="product-image">
                                 ${badge}
-                                <img src="${product.url || CONFIG.DEFAULT_PRODUCT_IMAGE}" 
-                                     alt="${Utils.escapeHtml(name)}" 
-                                     onerror="this.onerror=null; this.src='${CONFIG.DEFAULT_PRODUCT_IMAGE}';"
-                                     style="width: 100%; height: 100%; object-fit: cover;">
+                                <img src="${product.url || CONFIG.DEFAULT_PRODUCT_IMAGE}"
+                                     alt="${Utils.escapeHtml(name)}"
+                                     loading="lazy"
+                                     onerror="this.onerror=null; this.src='${CONFIG.DEFAULT_PRODUCT_IMAGE}';">
                             </div>
                             <div class="product-info">
                                 <h3 class="product-name">${Utils.escapeHtml(name)}</h3>
                                 <div class="product-price">${Utils.formatCurrency(price, currency)}</div>
                                 <div class="product-stock">${stock > 0 ? `${stock} in stock` : 'Out of stock'}</div>
-                                <button class="add-to-cart-btn" 
+                                <button class="add-to-cart-btn${inCartClass}"
+                                        data-product-id="${product.id}"
                                         onclick="CartController.addItem('${product.id}')"
-                                        ${stock === -1 ? 'disabled' : ''}>
+                                        ${stock === 0 ? 'disabled' : ''}
+                                        aria-label="${cartQty > 0 ? `${Utils.escapeHtml(name)} in cart, quantity ${cartQty}` : `Add ${Utils.escapeHtml(name)} to cart`}">
                                     ${cartQty > 0 ? `In Cart (${cartQty})` : 'Add to Cart'}
                                 </button>
                             </div>
                         </div>
                     `;
                 }).join('');
+            },
+
+            // Optimized: update only the specific product button instead of full re-render
+            updateProductButton(productId) {
+                const btn = document.querySelector(`[data-product-id="${productId}"]`);
+                if (!btn) return;
+
+                const product = AppState.products.find(p => p.id === productId);
+                if (!product) return;
+
+                const name = product.name || product.product_name || 'Unnamed Product';
+                const cartItem = AppState.cart.find(item => item.id === productId);
+                const cartQty = cartItem ? cartItem.quantity : 0;
+
+                if (cartQty > 0) {
+                    btn.classList.add('in-cart');
+                    btn.textContent = `In Cart (${cartQty})`;
+                    btn.setAttribute('aria-label', `${name} in cart, quantity ${cartQty}`);
+                } else {
+                    btn.classList.remove('in-cart');
+                    btn.textContent = 'Add to Cart';
+                    btn.setAttribute('aria-label', `Add ${name} to cart`);
+                }
             },
 
             renderCart() {
@@ -517,11 +571,11 @@
                             <div class="cart-item-price">${Utils.formatCurrency(item.price, item.currency)} each</div>
                             <div class="cart-item-controls">
                                 <div class="quantity-controls">
-                                    <button class="quantity-btn" onclick="CartController.updateQuantity('${item.id}', -1)">-</button>
+                                    <button class="quantity-btn" onclick="CartController.updateQuantity('${item.id}', -1)" aria-label="Decrease quantity">-</button>
                                     <span>${item.quantity}</span>
-                                    <button class="quantity-btn" onclick="CartController.updateQuantity('${item.id}', 1)">+</button>
+                                    <button class="quantity-btn" onclick="CartController.updateQuantity('${item.id}', 1)" aria-label="Increase quantity">+</button>
                                 </div>
-                                <button class="remove-btn" onclick="CartController.removeItem('${item.id}')">Remove</button>
+                                <button class="remove-btn" onclick="CartController.removeItem('${item.id}')" aria-label="Remove ${Utils.escapeHtml(item.name)} from cart">Remove</button>
                             </div>
                         </div>
                     `).join('');
@@ -530,7 +584,10 @@
             },
 
             toggleCart() {
-                document.getElementById('cartSidebar').classList.toggle('open');
+                const sidebar = document.getElementById('cartSidebar');
+                const overlay = document.getElementById('cartOverlay');
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('open');
             },
 
             openCheckout() {
@@ -552,12 +609,138 @@
                 document.getElementById('orderVAT').textContent = Utils.formatCurrency(vat, currency);
                 document.getElementById('orderTotal').textContent = Utils.formatCurrency(total, currency);
 
-                document.getElementById('checkoutModal').classList.add('open');
+                // Show form, hide confirmation
+                document.getElementById('checkoutFormView').style.display = 'block';
+                document.getElementById('orderConfirmationView').style.display = 'none';
+
+                const modal = document.getElementById('checkoutModal');
+                modal.classList.add('open');
                 this.toggleCart();
+                FocusTrap.activate(modal);
             },
 
             closeCheckout() {
-                document.getElementById('checkoutModal').classList.remove('open');
+                const modal = document.getElementById('checkoutModal');
+                modal.classList.remove('open');
+                FocusTrap.deactivate();
+                // Reset to form view for next time
+                document.getElementById('checkoutFormView').style.display = 'block';
+                document.getElementById('orderConfirmationView').style.display = 'none';
+            },
+
+            showOrderConfirmation(orderNumber) {
+                document.getElementById('checkoutFormView').style.display = 'none';
+                document.getElementById('orderConfirmationView').style.display = 'block';
+                document.getElementById('confirmationOrderNumber').textContent = orderNumber;
+            }
+        };
+
+        // Focus Trap for Modal Accessibility
+        const FocusTrap = {
+            _active: false,
+            _element: null,
+            _handler: null,
+
+            activate(element) {
+                this._element = element;
+                this._active = true;
+                this._handler = (e) => {
+                    if (e.key === 'Escape') {
+                        UIController.closeCheckout();
+                        return;
+                    }
+                    if (e.key !== 'Tab') return;
+
+                    const focusable = element.querySelectorAll(
+                        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                    );
+                    if (focusable.length === 0) return;
+
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+
+                    if (e.shiftKey) {
+                        if (document.activeElement === first) {
+                            e.preventDefault();
+                            last.focus();
+                        }
+                    } else {
+                        if (document.activeElement === last) {
+                            e.preventDefault();
+                            first.focus();
+                        }
+                    }
+                };
+                document.addEventListener('keydown', this._handler);
+            },
+
+            deactivate() {
+                this._active = false;
+                this._element = null;
+                if (this._handler) {
+                    document.removeEventListener('keydown', this._handler);
+                    this._handler = null;
+                }
+            }
+        };
+
+        // Category Filter Controller
+        const CategoryController = {
+            init() {
+                this.render();
+            },
+
+            getCategories() {
+                const categories = new Set();
+                AppState.products.forEach(p => {
+                    const cat = p.category || 'Other';
+                    categories.add(cat);
+                });
+                return ['All', ...Array.from(categories).sort()];
+            },
+
+            render() {
+                const container = document.getElementById('categoryFilters');
+                const categories = this.getCategories();
+
+                if (categories.length <= 2) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                container.innerHTML = categories.map(cat => {
+                    const isActive = (cat === 'All' && AppState.activeCategory === 'all') ||
+                                     cat.toLowerCase() === AppState.activeCategory;
+                    return `<button class="category-chip${isActive ? ' active' : ''}"
+                                   role="tab"
+                                   aria-selected="${isActive}"
+                                   onclick="CategoryController.select('${cat}')">${Utils.escapeHtml(cat)}</button>`;
+                }).join('');
+            },
+
+            select(category) {
+                AppState.activeCategory = category === 'All' ? 'all' : category.toLowerCase();
+
+                if (AppState.activeCategory === 'all') {
+                    AppState.filteredProducts = [...AppState.products];
+                } else {
+                    AppState.filteredProducts = AppState.products.filter(p => {
+                        return (p.category || 'other').toLowerCase() === AppState.activeCategory;
+                    });
+                }
+
+                // Also apply search filter if there's a search term
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+                if (searchTerm) {
+                    AppState.filteredProducts = AppState.filteredProducts.filter(product => {
+                        const name = (product.name || product.product_name || '').toLowerCase();
+                        const cat = (product.category || '').toLowerCase();
+                        return name.includes(searchTerm) || cat.includes(searchTerm);
+                    });
+                }
+
+                this.render();
+                UIController.renderProducts();
             }
         };
 
@@ -574,7 +757,7 @@
                 }
 
                 const cartItem = AppState.cart.find(item => item.id === productId);
-                
+
                 if (cartItem) {
                     if (cartItem.quantity < stock) {
                         cartItem.quantity++;
@@ -595,7 +778,7 @@
 
                 this.saveCart();
                 UIController.renderCart();
-                UIController.renderProducts();
+                UIController.updateProductButton(productId);
                 Utils.showToast(`${product.name || 'Product'} added to cart!`);
             },
 
@@ -604,17 +787,17 @@
                 if (!item) return;
 
                 const newQty = item.quantity + change;
-                
+
                 if (newQty <= 0) {
                     this.removeItem(productId);
                     return;
                 }
-                
+
                 if (newQty <= item.maxStock) {
                     item.quantity = newQty;
                     this.saveCart();
                     UIController.renderCart();
-                    UIController.renderProducts();
+                    UIController.updateProductButton(productId);
                 } else {
                     Utils.showToast('Maximum stock reached!', 'warning');
                 }
@@ -624,15 +807,16 @@
                 AppState.cart = AppState.cart.filter(item => item.id !== productId);
                 this.saveCart();
                 UIController.renderCart();
-                UIController.renderProducts();
+                UIController.updateProductButton(productId);
             },
 
             clearCart() {
                 if (confirm('Are you sure you want to clear your cart?')) {
+                    const previousIds = AppState.cart.map(item => item.id);
                     AppState.cart = [];
                     this.saveCart();
                     UIController.renderCart();
-                    UIController.renderProducts();
+                    previousIds.forEach(id => UIController.updateProductButton(id));
                 }
             },
 
@@ -658,12 +842,12 @@
             }
         };
 
-        // Order Controller - UPDATED WITH SUPABASE INTEGRATION
+        // Order Controller
         const OrderController = {
             async submit() {
                 const submitBtn = document.getElementById('submitBtn');
                 const form = document.getElementById('checkoutForm');
-                
+
                 if (!form.checkValidity()) {
                     form.reportValidity();
                     return;
@@ -673,34 +857,27 @@
                 submitBtn.textContent = 'Submitting...';
 
                 try {
-                    // Get form data
                     const customerName = document.getElementById('customerName').value;
                     const customerPhone = document.getElementById('customerPhone').value;
                     const customerEmail = document.getElementById('customerEmail').value || null;
                     const deliveryAddress = document.getElementById('deliveryAddress').value || null;
 
-                    // Calculate totals
                     const subtotal = AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                     const currency = AppState.cart[0]?.currency || 'ETB';
 
                     const orderNumber = Utils.generateOrderNumber();
                     let orderId = null;
 
-                    // Check if we're in demo mode or if Supabase is not available
                     if (AppState.isDemoMode || !AppState.supabase) {
-                        // Demo mode - just simulate order
                         orderId = `demo_${Date.now()}`;
-                        Utils.log('📦 Demo Order Created:', {
+                        Utils.log('Demo Order Created:', {
                             orderId,
                             orderNumber,
                             customerName,
                             total: subtotal,
                             items: AppState.cart.length
                         });
-                        
-                        Utils.showToast('🎉 Demo order submitted successfully! (Not saved to database)');
                     } else {
-                        // Real mode - save to Supabase
                         const orderPayload = {
                             user_id: String(AppState.currentMerchantId),
                             order_number: orderNumber,
@@ -711,9 +888,8 @@
                             total_amount: subtotal
                         };
 
-                        Utils.log('📦 Order payload:', orderPayload);
+                        Utils.log('Order payload:', orderPayload);
 
-                        // Insert order to Supabase
                         const { data: orderData, error: orderError } = await AppState.supabase
                             .from('orders')
                             .insert([orderPayload])
@@ -721,14 +897,13 @@
                             .single();
 
                         if (orderError) {
-                            console.error('❌ Order insert failed:', orderError);
+                            console.error('Order insert failed:', orderError);
                             throw new Error(orderError.message);
                         }
 
                         orderId = orderData.id;
-                        Utils.log('✅ Order pushed with ID:', orderId);
+                        Utils.log('Order pushed with ID:', orderId);
 
-                        // Create order items payload
                         const itemsPayload = AppState.cart.map(item => ({
                             order_id: orderId,
                             product_name: item.name,
@@ -736,33 +911,37 @@
                             unit_price: item.price
                         }));
 
-                        Utils.log('🛒 Items payload:', itemsPayload);
+                        Utils.log('Items payload:', itemsPayload);
 
-                        // Insert order items to Supabase
                         const { data: itemsData, error: itemsError } = await AppState.supabase
                             .from('order_items')
                             .insert(itemsPayload);
 
                         if (itemsError) {
-                            console.error('❌ Items insert failed:', itemsError);
+                            console.error('Items insert failed:', itemsError);
                             throw new Error(itemsError.message);
                         }
 
-                        Utils.log('✅ Items pushed');
-                        Utils.showToast('🎉 Order submitted successfully!');
+                        Utils.log('Items pushed');
                     }
 
-                    // Send SMS notification (optional - for both demo and real mode if merchant has phone)
+                    // Send SMS notification
                     if (AppState.currentMerchant?.phone && !AppState.isDemoMode) {
-                        await this.sendMerchantNotification(orderId, customerName, customerPhone, subtotal, currency);
+                        const smsResult = await this.sendMerchantNotification(orderId, customerName, customerPhone, subtotal, currency);
+                        if (!smsResult) {
+                            Utils.showToast('Order placed! Note: Merchant SMS notification could not be sent.', 'warning', 5000);
+                        }
                     }
 
-                    // Success! Clear cart and close modal
+                    // Show order confirmation
+                    UIController.showOrderConfirmation(orderNumber);
+
+                    // Clear cart
+                    const previousIds = AppState.cart.map(item => item.id);
                     AppState.cart = [];
                     CartController.saveCart();
                     UIController.renderCart();
-                    UIController.renderProducts();
-                    UIController.closeCheckout();
+                    previousIds.forEach(id => UIController.updateProductButton(id));
                     form.reset();
 
                 } catch (error) {
@@ -777,24 +956,26 @@
             async sendMerchantNotification(orderId, customerName, customerPhone, total, currency) {
                 if (!AppState.currentMerchant?.phone) {
                     Utils.log('No merchant phone for SMS');
-                    return;
+                    return false;
                 }
 
                 try {
-                    const merchantName = AppState.currentMerchant.business_name || AppState.currentMerchant.name || 'Merchant';
                     const itemsList = AppState.cart.map(item => `${item.name} (×${item.quantity})`).join(', ');
-                    
+
                     const message = `New Order : ${Utils.formatCurrency(total, currency)} from ${customerName} (${customerPhone}). Items: ${itemsList}. Contact customer for delivery.`;
 
                     const result = await SMSService.send(AppState.currentMerchant.phone, message);
-                    
+
                     if (result.success) {
                         Utils.log('SMS notification sent successfully');
+                        return true;
                     } else {
                         Utils.error('SMS notification failed', result.error);
+                        return false;
                     }
                 } catch (error) {
                     Utils.error('SMS notification error', error);
+                    return false;
                 }
             }
         };
@@ -809,10 +990,17 @@
             handleSearch(event) {
                 const searchTerm = event.target.value.toLowerCase().trim();
 
-                if (!searchTerm) {
+                // Start from category-filtered products
+                if (AppState.activeCategory === 'all') {
                     AppState.filteredProducts = [...AppState.products];
                 } else {
-                    AppState.filteredProducts = AppState.products.filter(product => {
+                    AppState.filteredProducts = AppState.products.filter(p => {
+                        return (p.category || 'other').toLowerCase() === AppState.activeCategory;
+                    });
+                }
+
+                if (searchTerm) {
+                    AppState.filteredProducts = AppState.filteredProducts.filter(product => {
                         const name = (product.name || product.product_name || '').toLowerCase();
                         const category = (product.category || '').toLowerCase();
                         return name.includes(searchTerm) || category.includes(searchTerm);
@@ -833,7 +1021,8 @@
 
                     UIController.updateStoreHeader(AppState.currentMerchant);
                     UIController.renderProducts();
-                    
+                    CategoryController.init();
+
                     Utils.log(`Loaded merchant: ${AppState.currentMerchant.business_name}`);
                     Utils.log(`Loaded ${AppState.products.length} products`);
                 } catch (error) {
@@ -866,7 +1055,8 @@
                 AppState.filteredProducts = [...AppState.products];
                 UIController.updateStoreHeader(AppState.currentMerchant);
                 UIController.renderProducts();
-                
+                CategoryController.init();
+
                 Utils.log('Demo mode loaded');
             }
         };
@@ -880,7 +1070,6 @@
                     const params = Utils.getUrlParams();
                     Utils.log('App initializing', params);
 
-                    // Handle demo mode or missing merchant ID
                     if (params.demo || !params.merchantId) {
                         DataController.loadDemoData();
                         this.finishInit();
@@ -889,7 +1078,6 @@
 
                     AppState.currentMerchantId = params.merchantId;
 
-                    // Initialize Supabase
                     const supabaseReady = await SupabaseService.init();
                     if (!supabaseReady) {
                         Utils.log('Supabase failed, loading demo');
@@ -898,7 +1086,6 @@
                         return;
                     }
 
-                    // Test connection
                     const connected = await SupabaseService.testConnection();
                     if (!connected) {
                         Utils.log('Connection failed, loading demo');
@@ -907,7 +1094,6 @@
                         return;
                     }
 
-                    // Load real data
                     await DataController.loadMerchantData(params.merchantId);
                     this.finishInit();
 
@@ -926,20 +1112,17 @@
             },
 
             setupEventListeners() {
-                // Checkout form
                 document.getElementById('checkoutForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     OrderController.submit();
                 });
 
-                // Close modal on outside click
                 document.getElementById('checkoutModal').addEventListener('click', (e) => {
                     if (e.target.id === 'checkoutModal') {
                         UIController.closeCheckout();
                     }
                 });
 
-                // Global error handling
                 window.addEventListener('error', (e) => {
                     Utils.error('Global error', e.error);
                 });
