@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Browse and shop from your favorite DukaCredit merchant. Easy online ordering with delivery.">
+    <link rel="icon" href="../assets/images/logo.png" type="image/png">
+    <title>DukaCredit Store</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="../assets/images/logo.png" alt="DukaCredit logo" class="logo">
+                <span class="brand-name">DukaCredit</span>
+            </div>
+            <button class="cart-btn" onclick="toggleCart()" aria-label="Open shopping cart">
+                🛒 Cart <span class="cart-count" id="cartCount">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="loading" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Loading store...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="error-container" style="display: none;" role="alert">
+        <h2>⚠️ Store Not Found</h2>
+        <p id="errorMessage">The store you're looking for doesn't exist or the link is invalid.</p>
+        <button onclick="location.reload()">Try Again</button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" style="display: none;">
+        <!-- Store Header -->
+        <div class="store-header">
+            <div class="store-header-content">
+                <h1 class="store-name" id="storeName">Loading...</h1>
+                <div class="store-meta">
+                    <span id="storeLocation">📍 Loading...</span>
+                    <span id="storePhone">📞 Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search & Category Filters -->
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search products..." aria-label="Search products">
+            <div class="category-filters" id="categoryFilters" role="tablist" aria-label="Filter by category"></div>
+        </div>
+
+        <!-- Main Container -->
+        <div class="main-container">
+            <div class="products-grid" id="productsGrid"></div>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <h2>📦 No Products Available</h2>
+                <p>This store doesn't have any products listed yet.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <img src="../assets/images/logo.png" alt="DukaCredit logo" class="logo">
+                        <span class="brand-name">DukaCredit</span>
+                    </div>
+                    <p>Empowering small businesses with smart inventory and credit solutions.</p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Download Now</h4>
+                    <div class="footer-links">
+                        <a href="https://play.google.com/store/apps/details?id=com.dukafi.dukacredit" class="app-button">
+                            <span>📱</span>
+                            <span>Google Play</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Connect</h4>
+                    <div class="footer-links">
+                        <a href="https://t.me/DukaCredit">
+                            <span>💬</span>
+                            <span>Telegram</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <div class="footer-links">
+                        <a href="https://www.dukacredit.com/">About Us</a>
+                        <a href="https://t.me/dcmukerabot">Contact</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                © 2025 DukaCredit. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <!-- Cart Overlay -->
+    <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cartSidebar" role="complementary" aria-label="Shopping cart">
+        <div class="cart-header">
+            <h2>Shopping Cart</h2>
+            <button class="close-btn" onclick="toggleCart()" aria-label="Close cart">✕</button>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Total:</span>
+                <span id="cartTotal">ETB 0</span>
+            </div>
+            <button class="checkout-btn" id="checkoutBtn" onclick="openCheckout()">Proceed to Checkout</button>
+            <button class="clear-cart-btn" onclick="clearCart()">Clear Cart</button>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal" id="checkoutModal" role="dialog" aria-modal="true" aria-label="Checkout">
+        <div class="modal-content">
+            <!-- Checkout Form View -->
+            <div id="checkoutFormView">
+                <div class="modal-header">
+                    <h2>Checkout</h2>
+                    <button class="close-btn" onclick="closeCheckout()" aria-label="Close checkout">✕</button>
+                </div>
+                <div class="modal-body">
+                    <form id="checkoutForm">
+                        <div class="form-group">
+                            <label for="customerName">Full Name *</label>
+                            <input type="text" id="customerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerPhone">Phone Number *</label>
+                            <input type="tel" id="customerPhone" placeholder="+251..." required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerEmail">Email (Optional)</label>
+                            <input type="email" id="customerEmail">
+                        </div>
+                        <div class="form-group">
+                            <label for="deliveryAddress">Delivery Address</label>
+                            <textarea id="deliveryAddress" rows="3" placeholder="Enter your delivery address..."></textarea>
+                        </div>
+                        <div class="order-summary">
+                            <h3>Order Summary</h3>
+                            <div id="orderSummary"></div>
+                            <div class="order-summary-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06);">
+                                <span>Subtotal:</span>
+                                <span id="orderSubtotal">ETB 0</span>
+                            </div>
+                            <div class="order-summary-row">
+                                <span>VAT (15%):</span>
+                                <span id="orderVAT">ETB 0</span>
+                            </div>
+                            <div class="order-summary-total">
+                                <span>Total Amount:</span>
+                                <span id="orderTotal">ETB 0</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn" id="submitBtn">Submit Order</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Order Confirmation View (hidden by default) -->
+            <div id="orderConfirmationView" style="display: none;">
+                <div class="modal-header">
+                    <h2>Order Placed</h2>
+                    <button class="close-btn" onclick="closeCheckout()" aria-label="Close confirmation">✕</button>
+                </div>
+                <div class="order-confirmation">
+                    <div class="confirmation-icon">✓</div>
+                    <h2>Order Submitted!</h2>
+                    <p>Your order has been sent to the merchant.</p>
+                    <p>They will contact you to arrange delivery.</p>
+                    <div class="order-number" id="confirmationOrderNumber">ORD-000000</div>
+                    <p>Save this order number for your reference.</p>
+                    <button class="continue-btn" onclick="closeCheckout()">Continue Shopping</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            SUPABASE_URL: 'https://jtyyzzcpsufcfubrarlq.supabase.co',
+            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0eXl6emNwc3VmY2Z1YnJhcmxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2NzMzMTIsImV4cCI6MjA2MTI0OTMxMn0.CHD7NCYd8nLH3E3sDNa1Bbg79DS_qHofw853UmZXxHI',
+            SMS_API: {
+                url: "https://api.afromessage.com/api/send",
+                token: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoibUdRTGpNTVNEdXdPMUJnMWNXcmt4Q3ExTnZLelkzWFoiLCJleHAiOjE5MDg4ODM0NDgsImlhdCI6MTc1MTExNzA0OCwianRpIjoiMzliNTkzMzUtNzA3MC00NmM2LTkzNWMtMDA4MGM2OGNmMTU4In0.2iSvBG6RVxu29wXomudQcZN4qFfeJEWFfiAX2yUHwYU",
+                sender: "Duka"
+            },
+            VAT_RATE: 0.15,
+            DEFAULT_PRODUCT_IMAGE: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgPHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDAgMTAwKSI+CiAgICA8IS0tIEJveCBiYXNlIC0tPgogICAgPHJlY3QgeD0iLTQwIiB5PSItMjAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI2MCIgZmlsbD0iI2Q0YTM3NCIgc3Ryb2tlPSIjOTY3MDRhIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDwhLS0gQm94IHRvcCAtLT4KICAgIDxwb2x5Z29uIHBvaW50cz0iLTQwLC0yMCA0MCwtMjAgMzAsLTM1IC0zMCwtMzUiIGZpbGw9IiNlNmI4OGEiIHN0cm9rZT0iIzk2NzA0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8IS0tIEJveCBzaWRlIC0tPgogICAgPHBvbHlnb24gcG9pbnRzPSI0MCwtMjAgNDAsNDAgMzAsMjUgMzAsLTM1IiBmaWxsPSIjYzU5NTZkIiBzdHJva2U9IiM5NjcwNGEiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPCEtLSBUYXBlIC0tPgogICAgPHJlY3QgeD0iLTUiIHk9Ii0zNSIgd2lkdGg9IjEwIiBoZWlnaHQ9Ijc1IiBmaWxsPSIjZmZjYzgwIiBzdHJva2U9IiNmZmE1MDAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHJlY3QgeD0iLTI1IiB5PSItNSIgd2lkdGg9IjY1IiBoZWlnaHQ9IjEwIiBmaWxsPSIjZmZjYzgwIiBzdHJva2U9IiNmZmE1MDAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDwvZz4KPC9zdmc+'
+        };
+
+        // Global State
+        const AppState = {
+            supabase: null,
+            currentMerchantId: null,
+            currentMerchant: null,
+            products: [],
+            filteredProducts: [],
+            cart: [],
+            isLoading: false,
+            isDemoMode: false,
+            activeCategory: 'all'
+        };
+
+        // Utility Functions
+        const Utils = {
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return (text || '').toString().replace(/[&<>"']/g, m => map[m]);
+            },
+
+            formatCurrency(amount, currency = 'ETB') {
+                return `${currency} ${Math.round(amount).toLocaleString()}`;
+            },
+
+            generateOrderNumber() {
+                return "ORD-" + Math.floor(100000 + Math.random() * 900000);
+            },
+
+            log(message, data = null) {
+                console.log(`[DukaCredit] ${message}`, data || '');
+            },
+
+            error(message, error = null) {
+                console.error(`[DukaCredit] ${message}`, error || '');
+            },
+
+            showToast(message, type = 'success', duration = 3000) {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
+                toast.textContent = message;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('removing');
+                    toast.addEventListener('animationend', () => {
+                        if (toast.parentNode) toast.parentNode.removeChild(toast);
+                    });
+                }, duration);
+            },
+
+            getUrlParams() {
+                const params = new URLSearchParams(window.location.search);
+                return {
+                    merchantId: params.get('m_id') || params.get('id'),
+                    demo: params.get('demo') === 'true',
+                    debug: params.get('debug') === 'true'
+                };
+            }
+        };
+
+        // API Services
+        const SupabaseService = {
+            async init() {
+                try {
+                    if (typeof window.supabase === 'undefined') {
+                        throw new Error('Supabase library not loaded');
+                    }
+
+                    AppState.supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+                    Utils.log('Supabase initialized');
+                    return true;
+                } catch (error) {
+                    Utils.error('Supabase initialization failed', error);
+                    return false;
+                }
+            },
+
+            async testConnection() {
+                try {
+                    if (!AppState.supabase) return false;
+
+                    const { data, error } = await AppState.supabase
+                        .from('profiles')
+                        .select('id')
+                        .limit(1);
+
+                    if (error) {
+                        Utils.error('Connection test failed', error);
+                        return false;
+                    }
+
+                    Utils.log('Supabase connection test successful');
+                    return true;
+                } catch (error) {
+                    Utils.error('Connection test error', error);
+                    return false;
+                }
+            },
+
+            async getMerchant(merchantId) {
+                try {
+                    const { data, error } = await AppState.supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', merchantId)
+                        .single();
+
+                    if (error) {
+                        throw new Error(`Merchant not found: ${error.message}`);
+                    }
+
+                    return data;
+                } catch (error) {
+                    Utils.error('Get merchant failed', error);
+                    throw error;
+                }
+            },
+
+            async getInventory(merchantId) {
+                try {
+                    const { data, error } = await AppState.supabase
+                        .from('inventory')
+                        .select('*')
+                        .eq('user_id', merchantId)
+                        .eq('is_deleted', false)
+                        .order('created_at', { ascending: false });
+
+                    if (error) {
+                        throw new Error(`Inventory fetch failed: ${error.message}`);
+                    }
+
+                    return data || [];
+                } catch (error) {
+                    Utils.error('Get inventory failed', error);
+                    throw error;
+                }
+            },
+
+            async createOrder(orderData) {
+                try {
+                    const { data, error } = await AppState.supabase
+                        .from('orders')
+                        .insert([orderData])
+                        .select('id')
+                        .single();
+
+                    if (error) {
+                        throw new Error(`Order creation failed: ${error.message}`);
+                    }
+
+                    return data;
+                } catch (error) {
+                    Utils.error('Create order failed', error);
+                    throw error;
+                }
+            },
+
+            async createOrderItems(orderItems) {
+                try {
+                    const { data, error } = await AppState.supabase
+                        .from('order_items')
+                        .insert(orderItems);
+
+                    if (error) {
+                        throw new Error(`Order items creation failed: ${error.message}`);
+                    }
+
+                    return data;
+                } catch (error) {
+                    Utils.error('Create order items failed', error);
+                    throw error;
+                }
+            }
+        };
+
+        const SMSService = {
+            async send(phoneNumber, message) {
+                try {
+                    const cleanPhone = phoneNumber.replace(/^\+/, '');
+                    const params = new URLSearchParams({
+                        sender: CONFIG.SMS_API.sender,
+                        to: cleanPhone,
+                        message: message
+                    });
+
+                    const response = await fetch(`${CONFIG.SMS_API.url}?${params}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${CONFIG.SMS_API.token}`
+                        }
+                    });
+
+                    let responseData;
+                    try {
+                        responseData = await response.json();
+                    } catch {
+                        responseData = { text: await response.text() };
+                    }
+
+                    const success = response.ok || response.status === 200;
+
+                    if (success) {
+                        Utils.log('SMS sent successfully');
+                        return { success: true, data: responseData };
+                    } else {
+                        Utils.error('SMS failed', responseData);
+                        return { success: false, error: responseData };
+                    }
+                } catch (error) {
+                    Utils.error('SMS error', error);
+                    return { success: false, error: error.message };
+                }
+            }
+        };
+
+        // UI Controllers
+        const UIController = {
+            showLoading() {
+                document.getElementById('loadingState').style.display = 'block';
+                document.getElementById('errorState').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'none';
+            },
+
+            showError(message) {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('errorState').style.display = 'block';
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('errorMessage').textContent = message;
+            },
+
+            showMain() {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('errorState').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            },
+
+            updateStoreHeader(merchant) {
+                document.getElementById('storeName').textContent =
+                    merchant.business_name || merchant.display_name || 'Store';
+                document.getElementById('storeLocation').textContent =
+                    `📍 ${merchant.location || merchant.address || 'Location'}`;
+                document.getElementById('storePhone').textContent =
+                    `📞 ${merchant.phone || merchant.contact || 'Contact'}`;
+            },
+
+            renderProducts() {
+                const grid = document.getElementById('productsGrid');
+                const emptyState = document.getElementById('emptyState');
+
+                if (AppState.filteredProducts.length === 0) {
+                    grid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                grid.style.display = 'grid';
+                emptyState.style.display = 'none';
+
+                grid.innerHTML = AppState.filteredProducts.map(product => {
+                    const name = product.name || product.product_name || 'Unnamed Product';
+                    const price = product.sales_price || product.selling_price || product.price || 0;
+                    const stock = product.stock_quantity || 10;
+                    const currency = product.currency || 'ETB';
+
+                    const cartItem = AppState.cart.find(item => item.id === product.id);
+                    const cartQty = cartItem ? cartItem.quantity : 0;
+                    const inCartClass = cartQty > 0 ? ' in-cart' : '';
+
+                    let badge = '';
+                    if (stock === 0) {
+                        badge = '<span class="product-badge badge-error">Out of Stock</span>';
+                    } else if (stock <= 3) {
+                        badge = '<span class="product-badge badge-warning">Low Stock</span>';
+                    } else if (stock > 10) {
+                        badge = '<span class="product-badge badge-success">In Stock</span>';
+                    }
+
+                    return `
+                        <div class="product-card">
+                            <div class="product-image">
+                                ${badge}
+                                <img src="${product.url || CONFIG.DEFAULT_PRODUCT_IMAGE}"
+                                     alt="${Utils.escapeHtml(name)}"
+                                     loading="lazy"
+                                     onerror="this.onerror=null; this.src='${CONFIG.DEFAULT_PRODUCT_IMAGE}';">
+                            </div>
+                            <div class="product-info">
+                                <h3 class="product-name">${Utils.escapeHtml(name)}</h3>
+                                <div class="product-price">${Utils.formatCurrency(price, currency)}</div>
+                                <div class="product-stock">${stock > 0 ? `${stock} in stock` : 'Out of stock'}</div>
+                                <button class="add-to-cart-btn${inCartClass}"
+                                        data-product-id="${product.id}"
+                                        onclick="CartController.addItem('${product.id}')"
+                                        ${stock === 0 ? 'disabled' : ''}
+                                        aria-label="${cartQty > 0 ? `${Utils.escapeHtml(name)} in cart, quantity ${cartQty}` : `Add ${Utils.escapeHtml(name)} to cart`}">
+                                    ${cartQty > 0 ? `In Cart (${cartQty})` : 'Add to Cart'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            // Optimized: update only the specific product button instead of full re-render
+            updateProductButton(productId) {
+                const btn = document.querySelector(`[data-product-id="${productId}"]`);
+                if (!btn) return;
+
+                const product = AppState.products.find(p => p.id === productId);
+                if (!product) return;
+
+                const name = product.name || product.product_name || 'Unnamed Product';
+                const cartItem = AppState.cart.find(item => item.id === productId);
+                const cartQty = cartItem ? cartItem.quantity : 0;
+
+                if (cartQty > 0) {
+                    btn.classList.add('in-cart');
+                    btn.textContent = `In Cart (${cartQty})`;
+                    btn.setAttribute('aria-label', `${name} in cart, quantity ${cartQty}`);
+                } else {
+                    btn.classList.remove('in-cart');
+                    btn.textContent = 'Add to Cart';
+                    btn.setAttribute('aria-label', `Add ${name} to cart`);
+                }
+            },
+
+            renderCart() {
+                const cartCount = document.getElementById('cartCount');
+                const cartItems = document.getElementById('cartItems');
+                const cartTotal = document.getElementById('cartTotal');
+                const checkoutBtn = document.getElementById('checkoutBtn');
+
+                const totalItems = AppState.cart.reduce((sum, item) => sum + item.quantity, 0);
+                const totalPrice = AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const currency = AppState.cart[0]?.currency || 'ETB';
+
+                cartCount.textContent = totalItems;
+                cartTotal.textContent = Utils.formatCurrency(totalPrice, currency);
+
+                if (AppState.cart.length === 0) {
+                    cartItems.innerHTML = '<div class="empty-cart">🛒<br>Your cart is empty</div>';
+                    checkoutBtn.disabled = true;
+                } else {
+                    cartItems.innerHTML = AppState.cart.map(item => `
+                        <div class="cart-item">
+                            <div class="cart-item-name">${Utils.escapeHtml(item.name)}</div>
+                            <div class="cart-item-price">${Utils.formatCurrency(item.price, item.currency)} each</div>
+                            <div class="cart-item-controls">
+                                <div class="quantity-controls">
+                                    <button class="quantity-btn" onclick="CartController.updateQuantity('${item.id}', -1)" aria-label="Decrease quantity">-</button>
+                                    <span>${item.quantity}</span>
+                                    <button class="quantity-btn" onclick="CartController.updateQuantity('${item.id}', 1)" aria-label="Increase quantity">+</button>
+                                </div>
+                                <button class="remove-btn" onclick="CartController.removeItem('${item.id}')" aria-label="Remove ${Utils.escapeHtml(item.name)} from cart">Remove</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    checkoutBtn.disabled = false;
+                }
+            },
+
+            toggleCart() {
+                const sidebar = document.getElementById('cartSidebar');
+                const overlay = document.getElementById('cartOverlay');
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('open');
+            },
+
+            openCheckout() {
+                if (AppState.cart.length === 0) return;
+
+                const subtotal = AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const vat = subtotal * CONFIG.VAT_RATE;
+                const total = subtotal + vat;
+                const currency = AppState.cart[0]?.currency || 'ETB';
+
+                document.getElementById('orderSummary').innerHTML = AppState.cart.map(item => `
+                    <div class="order-summary-row">
+                        <span>${Utils.escapeHtml(item.name)} × ${item.quantity}</span>
+                        <span>${Utils.formatCurrency(item.price * item.quantity, item.currency)}</span>
+                    </div>
+                `).join('');
+
+                document.getElementById('orderSubtotal').textContent = Utils.formatCurrency(subtotal, currency);
+                document.getElementById('orderVAT').textContent = Utils.formatCurrency(vat, currency);
+                document.getElementById('orderTotal').textContent = Utils.formatCurrency(total, currency);
+
+                // Show form, hide confirmation
+                document.getElementById('checkoutFormView').style.display = 'block';
+                document.getElementById('orderConfirmationView').style.display = 'none';
+
+                const modal = document.getElementById('checkoutModal');
+                modal.classList.add('open');
+                this.toggleCart();
+                FocusTrap.activate(modal);
+            },
+
+            closeCheckout() {
+                const modal = document.getElementById('checkoutModal');
+                modal.classList.remove('open');
+                FocusTrap.deactivate();
+                // Reset to form view for next time
+                document.getElementById('checkoutFormView').style.display = 'block';
+                document.getElementById('orderConfirmationView').style.display = 'none';
+            },
+
+            showOrderConfirmation(orderNumber) {
+                document.getElementById('checkoutFormView').style.display = 'none';
+                document.getElementById('orderConfirmationView').style.display = 'block';
+                document.getElementById('confirmationOrderNumber').textContent = orderNumber;
+            }
+        };
+
+        // Focus Trap for Modal Accessibility
+        const FocusTrap = {
+            _active: false,
+            _element: null,
+            _handler: null,
+
+            activate(element) {
+                this._element = element;
+                this._active = true;
+                this._handler = (e) => {
+                    if (e.key === 'Escape') {
+                        UIController.closeCheckout();
+                        return;
+                    }
+                    if (e.key !== 'Tab') return;
+
+                    const focusable = element.querySelectorAll(
+                        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                    );
+                    if (focusable.length === 0) return;
+
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+
+                    if (e.shiftKey) {
+                        if (document.activeElement === first) {
+                            e.preventDefault();
+                            last.focus();
+                        }
+                    } else {
+                        if (document.activeElement === last) {
+                            e.preventDefault();
+                            first.focus();
+                        }
+                    }
+                };
+                document.addEventListener('keydown', this._handler);
+            },
+
+            deactivate() {
+                this._active = false;
+                this._element = null;
+                if (this._handler) {
+                    document.removeEventListener('keydown', this._handler);
+                    this._handler = null;
+                }
+            }
+        };
+
+        // Category Filter Controller
+        const CategoryController = {
+            init() {
+                this.render();
+            },
+
+            getCategories() {
+                const categories = new Set();
+                AppState.products.forEach(p => {
+                    const cat = p.category || 'Other';
+                    categories.add(cat);
+                });
+                return ['All', ...Array.from(categories).sort()];
+            },
+
+            render() {
+                const container = document.getElementById('categoryFilters');
+                const categories = this.getCategories();
+
+                if (categories.length <= 2) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                container.innerHTML = categories.map(cat => {
+                    const isActive = (cat === 'All' && AppState.activeCategory === 'all') ||
+                                     cat.toLowerCase() === AppState.activeCategory;
+                    return `<button class="category-chip${isActive ? ' active' : ''}"
+                                   role="tab"
+                                   aria-selected="${isActive}"
+                                   onclick="CategoryController.select('${cat}')">${Utils.escapeHtml(cat)}</button>`;
+                }).join('');
+            },
+
+            select(category) {
+                AppState.activeCategory = category === 'All' ? 'all' : category.toLowerCase();
+
+                if (AppState.activeCategory === 'all') {
+                    AppState.filteredProducts = [...AppState.products];
+                } else {
+                    AppState.filteredProducts = AppState.products.filter(p => {
+                        return (p.category || 'other').toLowerCase() === AppState.activeCategory;
+                    });
+                }
+
+                // Also apply search filter if there's a search term
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+                if (searchTerm) {
+                    AppState.filteredProducts = AppState.filteredProducts.filter(product => {
+                        const name = (product.name || product.product_name || '').toLowerCase();
+                        const cat = (product.category || '').toLowerCase();
+                        return name.includes(searchTerm) || cat.includes(searchTerm);
+                    });
+                }
+
+                this.render();
+                UIController.renderProducts();
+            }
+        };
+
+        // Cart Controller
+        const CartController = {
+            addItem(productId) {
+                const product = AppState.products.find(p => p.id === productId);
+                if (!product) return;
+
+                const stock = product.stock_quantity || 10;
+                if (stock === 0) {
+                    Utils.showToast('Product is out of stock!', 'error');
+                    return;
+                }
+
+                const cartItem = AppState.cart.find(item => item.id === productId);
+
+                if (cartItem) {
+                    if (cartItem.quantity < stock) {
+                        cartItem.quantity++;
+                    } else {
+                        Utils.showToast('Maximum stock reached!', 'warning');
+                        return;
+                    }
+                } else {
+                    AppState.cart.push({
+                        id: product.id,
+                        name: product.name || product.product_name || 'Product',
+                        price: product.sales_price || product.selling_price || product.price || 0,
+                        quantity: 1,
+                        maxStock: stock,
+                        currency: product.currency || 'ETB'
+                    });
+                }
+
+                this.saveCart();
+                UIController.renderCart();
+                UIController.updateProductButton(productId);
+                Utils.showToast(`${product.name || 'Product'} added to cart!`);
+            },
+
+            updateQuantity(productId, change) {
+                const item = AppState.cart.find(item => item.id === productId);
+                if (!item) return;
+
+                const newQty = item.quantity + change;
+
+                if (newQty <= 0) {
+                    this.removeItem(productId);
+                    return;
+                }
+
+                if (newQty <= item.maxStock) {
+                    item.quantity = newQty;
+                    this.saveCart();
+                    UIController.renderCart();
+                    UIController.updateProductButton(productId);
+                } else {
+                    Utils.showToast('Maximum stock reached!', 'warning');
+                }
+            },
+
+            removeItem(productId) {
+                AppState.cart = AppState.cart.filter(item => item.id !== productId);
+                this.saveCart();
+                UIController.renderCart();
+                UIController.updateProductButton(productId);
+            },
+
+            clearCart() {
+                if (confirm('Are you sure you want to clear your cart?')) {
+                    const previousIds = AppState.cart.map(item => item.id);
+                    AppState.cart = [];
+                    this.saveCart();
+                    UIController.renderCart();
+                    previousIds.forEach(id => UIController.updateProductButton(id));
+                }
+            },
+
+            saveCart() {
+                try {
+                    localStorage.setItem(`cart_${AppState.currentMerchantId}`, JSON.stringify(AppState.cart));
+                } catch (error) {
+                    Utils.error('Failed to save cart', error);
+                }
+            },
+
+            loadCart() {
+                try {
+                    const saved = localStorage.getItem(`cart_${AppState.currentMerchantId}`);
+                    if (saved) {
+                        AppState.cart = JSON.parse(saved);
+                        UIController.renderCart();
+                    }
+                } catch (error) {
+                    Utils.error('Failed to load cart', error);
+                    AppState.cart = [];
+                }
+            }
+        };
+
+        // Order Controller
+        const OrderController = {
+            async submit() {
+                const submitBtn = document.getElementById('submitBtn');
+                const form = document.getElementById('checkoutForm');
+
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+
+                try {
+                    const customerName = document.getElementById('customerName').value;
+                    const customerPhone = document.getElementById('customerPhone').value;
+                    const customerEmail = document.getElementById('customerEmail').value || null;
+                    const deliveryAddress = document.getElementById('deliveryAddress').value || null;
+
+                    const subtotal = AppState.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    const currency = AppState.cart[0]?.currency || 'ETB';
+
+                    const orderNumber = Utils.generateOrderNumber();
+                    let orderId = null;
+
+                    if (AppState.isDemoMode || !AppState.supabase) {
+                        orderId = `demo_${Date.now()}`;
+                        Utils.log('Demo Order Created:', {
+                            orderId,
+                            orderNumber,
+                            customerName,
+                            total: subtotal,
+                            items: AppState.cart.length
+                        });
+                    } else {
+                        const orderPayload = {
+                            user_id: String(AppState.currentMerchantId),
+                            order_number: orderNumber,
+                            customer_name: customerName,
+                            phone_number: customerPhone,
+                            email: customerEmail,
+                            delivery_address: deliveryAddress,
+                            total_amount: subtotal
+                        };
+
+                        Utils.log('Order payload:', orderPayload);
+
+                        const { data: orderData, error: orderError } = await AppState.supabase
+                            .from('orders')
+                            .insert([orderPayload])
+                            .select('id')
+                            .single();
+
+                        if (orderError) {
+                            console.error('Order insert failed:', orderError);
+                            throw new Error(orderError.message);
+                        }
+
+                        orderId = orderData.id;
+                        Utils.log('Order pushed with ID:', orderId);
+
+                        const itemsPayload = AppState.cart.map(item => ({
+                            order_id: orderId,
+                            product_name: item.name,
+                            quantity: item.quantity,
+                            unit_price: item.price
+                        }));
+
+                        Utils.log('Items payload:', itemsPayload);
+
+                        const { data: itemsData, error: itemsError } = await AppState.supabase
+                            .from('order_items')
+                            .insert(itemsPayload);
+
+                        if (itemsError) {
+                            console.error('Items insert failed:', itemsError);
+                            throw new Error(itemsError.message);
+                        }
+
+                        Utils.log('Items pushed');
+                    }
+
+                    // Send SMS notification
+                    if (AppState.currentMerchant?.phone && !AppState.isDemoMode) {
+                        const smsResult = await this.sendMerchantNotification(orderId, customerName, customerPhone, subtotal, currency);
+                        if (!smsResult) {
+                            Utils.showToast('Order placed! Note: Merchant SMS notification could not be sent.', 'warning', 5000);
+                        }
+                    }
+
+                    // Show order confirmation
+                    UIController.showOrderConfirmation(orderNumber);
+
+                    // Clear cart
+                    const previousIds = AppState.cart.map(item => item.id);
+                    AppState.cart = [];
+                    CartController.saveCart();
+                    UIController.renderCart();
+                    previousIds.forEach(id => UIController.updateProductButton(id));
+                    form.reset();
+
+                } catch (error) {
+                    Utils.error('Order submission failed', error);
+                    Utils.showToast(`Order failed: ${error.message}`, 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Order';
+                }
+            },
+
+            async sendMerchantNotification(orderId, customerName, customerPhone, total, currency) {
+                if (!AppState.currentMerchant?.phone) {
+                    Utils.log('No merchant phone for SMS');
+                    return false;
+                }
+
+                try {
+                    const itemsList = AppState.cart.map(item => `${item.name} (×${item.quantity})`).join(', ');
+
+                    const message = `New Order : ${Utils.formatCurrency(total, currency)} from ${customerName} (${customerPhone}). Items: ${itemsList}. Contact customer for delivery.`;
+
+                    const result = await SMSService.send(AppState.currentMerchant.phone, message);
+
+                    if (result.success) {
+                        Utils.log('SMS notification sent successfully');
+                        return true;
+                    } else {
+                        Utils.error('SMS notification failed', result.error);
+                        return false;
+                    }
+                } catch (error) {
+                    Utils.error('SMS notification error', error);
+                    return false;
+                }
+            }
+        };
+
+        // Search Controller
+        const SearchController = {
+            init() {
+                const searchInput = document.getElementById('searchInput');
+                searchInput.addEventListener('input', this.handleSearch.bind(this));
+            },
+
+            handleSearch(event) {
+                const searchTerm = event.target.value.toLowerCase().trim();
+
+                // Start from category-filtered products
+                if (AppState.activeCategory === 'all') {
+                    AppState.filteredProducts = [...AppState.products];
+                } else {
+                    AppState.filteredProducts = AppState.products.filter(p => {
+                        return (p.category || 'other').toLowerCase() === AppState.activeCategory;
+                    });
+                }
+
+                if (searchTerm) {
+                    AppState.filteredProducts = AppState.filteredProducts.filter(product => {
+                        const name = (product.name || product.product_name || '').toLowerCase();
+                        const category = (product.category || '').toLowerCase();
+                        return name.includes(searchTerm) || category.includes(searchTerm);
+                    });
+                }
+
+                UIController.renderProducts();
+            }
+        };
+
+        // Data Controller
+        const DataController = {
+            async loadMerchantData(merchantId) {
+                try {
+                    AppState.currentMerchant = await SupabaseService.getMerchant(merchantId);
+                    AppState.products = await SupabaseService.getInventory(merchantId);
+                    AppState.filteredProducts = [...AppState.products];
+
+                    UIController.updateStoreHeader(AppState.currentMerchant);
+                    UIController.renderProducts();
+                    CategoryController.init();
+
+                    Utils.log(`Loaded merchant: ${AppState.currentMerchant.business_name}`);
+                    Utils.log(`Loaded ${AppState.products.length} products`);
+                } catch (error) {
+                    Utils.error('Failed to load merchant data', error);
+                    throw error;
+                }
+            },
+
+            loadDemoData() {
+                AppState.isDemoMode = true;
+                AppState.currentMerchantId = 'demo';
+                AppState.currentMerchant = {
+                    id: 'demo',
+                    business_name: 'Safari Electronics Store',
+                    location: 'Westlands, Nairobi',
+                    phone: '+254722123456'
+                };
+
+                AppState.products = [
+                    { id: 1, name: 'Samsung Galaxy A54 5G', selling_price: 45000, stock_quantity: 15, category: 'Smartphones' },
+                    { id: 2, name: 'iPhone 13 Pro Max', selling_price: 125000, stock_quantity: 8, category: 'Smartphones' },
+                    { id: 3, name: 'Sony WH-1000XM4', selling_price: 28500, stock_quantity: 3, category: 'Audio' },
+                    { id: 4, name: 'MacBook Air M2', selling_price: 185000, stock_quantity: 5, category: 'Laptops' },
+                    { id: 5, name: 'iPad Air 5th Gen', selling_price: 75000, stock_quantity: 0, category: 'Tablets' },
+                    { id: 6, name: 'JBL Flip 6 Speaker', selling_price: 12500, stock_quantity: 20, category: 'Audio' },
+                    { id: 7, name: 'Samsung 55" 4K TV', selling_price: 65000, stock_quantity: 4, category: 'TVs' },
+                    { id: 8, name: 'PlayStation 5', selling_price: 75000, stock_quantity: 2, category: 'Gaming' }
+                ];
+
+                AppState.filteredProducts = [...AppState.products];
+                UIController.updateStoreHeader(AppState.currentMerchant);
+                UIController.renderProducts();
+                CategoryController.init();
+
+                Utils.log('Demo mode loaded');
+            }
+        };
+
+        // App Controller
+        const AppController = {
+            async init() {
+                try {
+                    UIController.showLoading();
+
+                    const params = Utils.getUrlParams();
+                    Utils.log('App initializing', params);
+
+                    if (params.demo || !params.merchantId) {
+                        DataController.loadDemoData();
+                        this.finishInit();
+                        return;
+                    }
+
+                    AppState.currentMerchantId = params.merchantId;
+
+                    const supabaseReady = await SupabaseService.init();
+                    if (!supabaseReady) {
+                        Utils.log('Supabase failed, loading demo');
+                        DataController.loadDemoData();
+                        this.finishInit();
+                        return;
+                    }
+
+                    const connected = await SupabaseService.testConnection();
+                    if (!connected) {
+                        Utils.log('Connection failed, loading demo');
+                        DataController.loadDemoData();
+                        this.finishInit();
+                        return;
+                    }
+
+                    await DataController.loadMerchantData(params.merchantId);
+                    this.finishInit();
+
+                } catch (error) {
+                    Utils.error('App initialization failed', error);
+                    UIController.showError(`Failed to load store: ${error.message}`);
+                }
+            },
+
+            finishInit() {
+                CartController.loadCart();
+                SearchController.init();
+                UIController.showMain();
+                this.setupEventListeners();
+                Utils.log('App initialized successfully');
+            },
+
+            setupEventListeners() {
+                document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    OrderController.submit();
+                });
+
+                document.getElementById('checkoutModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'checkoutModal') {
+                        UIController.closeCheckout();
+                    }
+                });
+
+                window.addEventListener('error', (e) => {
+                    Utils.error('Global error', e.error);
+                });
+
+                window.addEventListener('unhandledrejection', (e) => {
+                    Utils.error('Unhandled promise rejection', e.reason);
+                });
+            }
+        };
+
+        // Global Functions (for onclick handlers)
+        function toggleCart() {
+            UIController.toggleCart();
+        }
+
+        function openCheckout() {
+            UIController.openCheckout();
+        }
+
+        function closeCheckout() {
+            UIController.closeCheckout();
+        }
+
+        function clearCart() {
+            CartController.clearCart();
+        }
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            AppController.init();
+        });
+    </script>
+</body>
+</html>
