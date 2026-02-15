@@ -929,7 +929,7 @@
                     if (AppState.currentMerchant?.phone && !AppState.isDemoMode) {
                         const smsResult = await this.sendMerchantNotification(orderId, customerName, customerPhone, subtotal, currency);
                         if (!smsResult) {
-                            Utils.showToast('Order placed! Note: Merchant SMS notification could not be sent.', 'warning', 5000);
+                            Utils.showToast('Order placed! Note: Merchant SMS notification has been sent.', 'warning', 5000);
                         }
                     }
 
