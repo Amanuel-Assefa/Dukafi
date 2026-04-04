@@ -6,7 +6,6 @@
     <meta name="description" content="Browse and shop from your favorite DukaCredit merchant. Easy online ordering with delivery.">
     <link rel="icon" href="../assets/images/logo.png" type="image/png">
     <title>DukaCredit Store</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -204,8 +203,7 @@
     <script>
         // Configuration
         const CONFIG = {
-            SUPABASE_URL: 'https://jtyyzzcpsufcfubrarlq.supabase.co',
-            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0eXl6emNwc3VmY2Z1YnJhcmxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU2NzMzMTIsImV4cCI6MjA2MTI0OTMxMn0.CHD7NCYd8nLH3E3sDNa1Bbg79DS_qHofw853UmZXxHI',
+            FUNCTIONS_URL: 'https://jtyyzzcpsufcfubrarlq.supabase.co/functions/v1',
             SMS_API: {
                 url: "https://api.afromessage.com/api/send",
                 token: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoibUdRTGpNTVNEdXdPMUJnMWNXcmt4Q3ExTnZLelkzWFoiLCJleHAiOjE5MDg4ODM0NDgsImlhdCI6MTc1MTExNzA0OCwianRpIjoiMzliNTkzMzUtNzA3MC00NmM2LTkzNWMtMDA4MGM2OGNmMTU4In0.2iSvBG6RVxu29wXomudQcZN4qFfeJEWFfiAX2yUHwYU",
@@ -217,7 +215,6 @@
 
         // Global State
         const AppState = {
-            supabase: null,
             currentMerchantId: null,
             currentMerchant: null,
             products: [],
@@ -285,115 +282,52 @@
         // API Services
         const SupabaseService = {
             async init() {
-                try {
-                    if (typeof window.supabase === 'undefined') {
-                        throw new Error('Supabase library not loaded');
-                    }
-
-                    AppState.supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
-                    Utils.log('Supabase initialized');
-                    return true;
-                } catch (error) {
-                    Utils.error('Supabase initialization failed', error);
-                    return false;
-                }
+                return true; // no client-side SDK needed
             },
 
             async testConnection() {
                 try {
-                    if (!AppState.supabase) return false;
-
-                    const { data, error } = await AppState.supabase
-                        .from('profiles')
-                        .select('id')
-                        .limit(1);
-
-                    if (error) {
-                        Utils.error('Connection test failed', error);
-                        return false;
-                    }
-
-                    Utils.log('Supabase connection test successful');
-                    return true;
-                } catch (error) {
-                    Utils.error('Connection test error', error);
+                    const res = await fetch(`${CONFIG.FUNCTIONS_URL}/get-store`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ merchantId: 'ping' })
+                    });
+                    return res.status !== 0; // any HTTP response means the function is reachable
+                } catch {
                     return false;
                 }
             },
 
-            async getMerchant(merchantId) {
-                try {
-                    const { data, error } = await AppState.supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', merchantId)
-                        .single();
+            async getStore(merchantId) {
+                const res = await fetch(`${CONFIG.FUNCTIONS_URL}/get-store`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ merchantId })
+                });
 
-                    if (error) {
-                        throw new Error(`Merchant not found: ${error.message}`);
-                    }
+                const data = await res.json();
 
-                    return data;
-                } catch (error) {
-                    Utils.error('Get merchant failed', error);
-                    throw error;
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to load store');
                 }
+
+                return data; // { merchant, inventory }
             },
 
-            async getInventory(merchantId) {
-                try {
-                    const { data, error } = await AppState.supabase
-                        .from('inventory')
-                        .select('*')
-                        .eq('user_id', merchantId)
-                        .eq('is_deleted', false)
-                        .order('created_at', { ascending: false });
+            async createOrder(orderPayload) {
+                const res = await fetch(`${CONFIG.FUNCTIONS_URL}/place-order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderPayload)
+                });
 
-                    if (error) {
-                        throw new Error(`Inventory fetch failed: ${error.message}`);
-                    }
+                const data = await res.json();
 
-                    return data || [];
-                } catch (error) {
-                    Utils.error('Get inventory failed', error);
-                    throw error;
+                if (!res.ok) {
+                    throw new Error(data.error || 'Order failed');
                 }
-            },
 
-            async createOrder(orderData) {
-                try {
-                    const { data, error } = await AppState.supabase
-                        .from('orders')
-                        .insert([orderData])
-                        .select('id')
-                        .single();
-
-                    if (error) {
-                        throw new Error(`Order creation failed: ${error.message}`);
-                    }
-
-                    return data;
-                } catch (error) {
-                    Utils.error('Create order failed', error);
-                    throw error;
-                }
-            },
-
-            async createOrderItems(orderItems) {
-                try {
-                    const { data, error } = await AppState.supabase
-                        .from('order_items')
-                        .insert(orderItems);
-
-                    if (error) {
-                        throw new Error(`Order items creation failed: ${error.message}`);
-                    }
-
-                    return data;
-                } catch (error) {
-                    Utils.error('Create order items failed', error);
-                    throw error;
-                }
+                return data; // { success, orderId }
             }
         };
 
@@ -868,61 +802,29 @@
                     const orderNumber = Utils.generateOrderNumber();
                     let orderId = null;
 
-                    if (AppState.isDemoMode || !AppState.supabase) {
+                    if (AppState.isDemoMode) {
                         orderId = `demo_${Date.now()}`;
-                        Utils.log('Demo Order Created:', {
-                            orderId,
-                            orderNumber,
-                            customerName,
-                            total: subtotal,
-                            items: AppState.cart.length
-                        });
+                        Utils.log('Demo Order Created:', { orderId, orderNumber, customerName, total: subtotal });
                     } else {
                         const orderPayload = {
-                            user_id: String(AppState.currentMerchantId),
-                            order_number: orderNumber,
-                            customer_name: customerName,
-                            phone_number: customerPhone,
-                            email: customerEmail,
-                            delivery_address: deliveryAddress,
-                            total_amount: subtotal
+                            merchantId: String(AppState.currentMerchantId),
+                            orderNumber,
+                            customerName,
+                            customerPhone,
+                            customerEmail,
+                            deliveryAddress,
+                            totalAmount: subtotal,
+                            items: AppState.cart.map(item => ({
+                                name: item.name,
+                                quantity: item.quantity,
+                                price: item.price
+                            }))
                         };
 
-                        Utils.log('Order payload:', orderPayload);
-
-                        const { data: orderData, error: orderError } = await AppState.supabase
-                            .from('orders')
-                            .insert([orderPayload])
-                            .select('id')
-                            .single();
-
-                        if (orderError) {
-                            console.error('Order insert failed:', orderError);
-                            throw new Error(orderError.message);
-                        }
-
-                        orderId = orderData.id;
-                        Utils.log('Order pushed with ID:', orderId);
-
-                        const itemsPayload = AppState.cart.map(item => ({
-                            order_id: orderId,
-                            product_name: item.name,
-                            quantity: item.quantity,
-                            unit_price: item.price
-                        }));
-
-                        Utils.log('Items payload:', itemsPayload);
-
-                        const { data: itemsData, error: itemsError } = await AppState.supabase
-                            .from('order_items')
-                            .insert(itemsPayload);
-
-                        if (itemsError) {
-                            console.error('Items insert failed:', itemsError);
-                            throw new Error(itemsError.message);
-                        }
-
-                        Utils.log('Items pushed');
+                        Utils.log('Submitting order via edge function');
+                        const result = await SupabaseService.createOrder(orderPayload);
+                        orderId = result.orderId;
+                        Utils.log('Order created with ID:', orderId);
                     }
 
                     // Send SMS notification
@@ -1015,8 +917,9 @@
         const DataController = {
             async loadMerchantData(merchantId) {
                 try {
-                    AppState.currentMerchant = await SupabaseService.getMerchant(merchantId);
-                    AppState.products = await SupabaseService.getInventory(merchantId);
+                    const { merchant, inventory } = await SupabaseService.getStore(merchantId);
+                    AppState.currentMerchant = merchant;
+                    AppState.products = inventory;
                     AppState.filteredProducts = [...AppState.products];
 
                     UIController.updateStoreHeader(AppState.currentMerchant);
@@ -1077,22 +980,6 @@
                     }
 
                     AppState.currentMerchantId = params.merchantId;
-
-                    const supabaseReady = await SupabaseService.init();
-                    if (!supabaseReady) {
-                        Utils.log('Supabase failed, loading demo');
-                        DataController.loadDemoData();
-                        this.finishInit();
-                        return;
-                    }
-
-                    const connected = await SupabaseService.testConnection();
-                    if (!connected) {
-                        Utils.log('Connection failed, loading demo');
-                        DataController.loadDemoData();
-                        this.finishInit();
-                        return;
-                    }
 
                     await DataController.loadMerchantData(params.merchantId);
                     this.finishInit();
